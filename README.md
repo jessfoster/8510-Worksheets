@@ -1,0 +1,1 @@
+This repository contains weekly worksheets for HIST-8510: Digital Methods II. The worksheets are R Markdown documents in which I combine prose and code to demonstrate my understanding of digital methodologies for historical research.
