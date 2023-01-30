@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 1: R Basics'
-author: "Amanda Regan"
-date: "2022-12-14"
+author: "Jessica Foster"
+date: "2023-01-30"
 output:
   pdf_document: default
   html_document:
@@ -106,9 +106,9 @@ Logical Operators allow you to combine or change the results of comparisons.
 (@) Explain, what does the code on each line above do? 
 
 > 5 == 10 tests whether 5 is equal to 10. Since 5 is not equal to 10, the return value is FALSE.
-> 3 < 4 tests whether 3 is less than 4. Since 3 is indeed less than 4, the return value is TRUE.
-> 5 != 10 tests whether 5 is not equal to 10. Since 5 is indeed not equal to 10, the return value is TRUE.
-> 5 != 5 tests whether 5 is not equal to 5. Since 5 is of course equal to itself, the return value is FALSE.
+> 3 < 4 tests whether 3 is less than 4. Since 3 is less than 4, the return value is TRUE.
+> 5 != 10 tests whether 5 is not equal to 10. Since 5 is not equal to 10, the return value is TRUE.
+> 5 != 5 tests whether 5 is not equal to 5. Since 5 is equal to itself, the return value is FALSE.
 > 3 == 4 | 3 tests whether 3 is equal to 4 or equal to 3. While 3 is not equal to 4, it is equal to 3, so the return value is TRUE.
 > 3 != 4 & 3 != 5 tests two statements. It asks whether 3 is not equal to 4 and whether 3 is not equal to 5. Since both of these statements are true, the return value is TRUE. If one of the statements was false, the return value would be FALSE.
 
@@ -284,13 +284,13 @@ We can ask R to pull up the documentation like this:
 
 In real life, you typically you wouldn't want to store this code in your script file. You probably don't need to pull up the documentation for the function every time you run that piece of code. But for the purposes of this worksheet we're adding it to our `.Rmd` document. 
 
-(@) Use the console to find the documentation for `floor()`? Try it and then tell me, what does that function do? 
+(@) Use the console to find the documentation for `floor()`? Try it and then tell me, what does that function do?
 ```{r}
 floor(29.2020283)
 ceiling(29.2020283)
 floor(29.7)
 ```
-
+> I did a few tests above.
 > The floor() function takes a number and rounds it down, returning the largest integer that is not greater than the number. Thus, 29.2020283 was rounded down to 29. This is what we would do in math if the first digit after the decimal is less than 5, but floor() will round even 29.9 down to 29. By contrast, the ceiling() function will always round the number up, returning the smallest integer that is not less than the number. Even 29.2 will round up to 30.
 
 ### Data Frames & Packages
@@ -353,9 +353,9 @@ What kind of datasets are available in this package? We can use the help documen
 
 Run `help(package="DigitalMethodsData")` in your console to pull up a list of datasets included in this package. 
 
-For demonstration purposes we'll use the `gayguides` data here. Pull up the help documentation for this dataset. What does the documentation tell you abou the scope of this dataset? 
+For demonstration purposes we'll use the `gayguides` data here. Pull up the help documentation for this dataset. What does the documentation tell you about the scope of this dataset? 
 
->
+> It tells us the source of the data (information transcribed from Bob Damron's Address Books) and the time period (the years 1965 through 1985). It gives the last time the dataset was updated (December 2022). Also it shows how you should refer to the dataset (gayguides), as well as the format and a couple of example functions.
 
 To use a dataset included in this package we first need to load it. We can do so like this:
 
@@ -383,7 +383,7 @@ tail(gayguides, n = 6L)
 
 (@) Reflect on the previous two prompts. How did you figure these out? 
 
-> Since I didn't know how to modify the code, I used ?head() to find the manual for this function. The examples showed that you could specify the number of rows using an additional argument, n = 6L, where 6 can be changed to whatever number you want. So I changed the 6 to 10 to retrieve the first 10 rows of data. The manual also showed examples for the tail() function, which logically made sense to find the last rows of a dataset. I used the same argument n = 6L to find the last six rows using tail().
+> Since I didn't know how to modify the code, I used ?head() to find the manual for this function. The examples show that you can specify the number of rows using an additional argument, n = 6L, where 6 can be changed to whatever number you want. So I changed the 6 to 10 to retrieve the first 10 rows of data. The manual also shows examples for the tail() function, which logically makes sense to find the last rows of a dataset. I used the same argument n = 6L to find the last six rows using tail().
 
 The `str()` function is another very useful function for understanding a dataset. It compactly displays the internal structure of an R object. 
 ```{r}
@@ -404,7 +404,7 @@ gayguides$title[500]
 
 (@) Break this down. Whats going on here? What do each of the elements of this code mean? (gayguides, $, title, and [500]) 
 
-> gayguides is the name of the dataset, which is a Data Frame. The dollar sign $ is the operator used to access the variables in the Data Frame. In this case we want to access the values in the title row, so we use $title. We use [500] to specify that we want the 500th value in the title row, which is "Rest Stop".
+> gayguides is the name of the dataset. The dollar sign $ is the operator used to access the variables (columns) in the dataset. In this case we want to access the rows in the title column, so we use $title. We use [500] to specify that we want the value in the 500th row in the title column, which is "Rest Stop".
 
 (@) The Year variable contains the year (numeric) of each entry. Can you find the earliest year in this dataset? (Using code, don't cheat and use the documentation!)
 ```{r}
@@ -434,7 +434,7 @@ str(almshouse_admissions)
 
 (@) What did you learn about the dataset? What can you tell me about it? 
 
-> almshouse_admissions is a Data Frame like gayguides. It contains 1400 obs. of 9 variables. These variables include the last and first name of the person admitted (these are the only two strings, the rest being integers), the month and year they were admitted, their gender (1 for female, 0 for male), the descriptions made about them by the clerk (I'm not sure whether the integer indicates the number of descriptions or if it refers to a certain kind of description), the reasons they were discharged (again, the integer could be the number of reasons or it could correspond to a type of reason), and the month and year they were discharged. One interesting thing I found is, looking at the last 6 rows, these are people who have only a first name. Their last name is listed as either "NEGRO", "black boy", "black child", or "mulatto". This indicates that they were likely currently or formerly enslaved, as slave owners did not give last names to their slaves. It would be interesting to know if the clerk included any biographical data in the descriptions.
+> almshouse_admissions is a Data Frame like gayguides. It contains 1400 obs. of 9 variables. These variables include the last and first name of the person admitted (these are the only two string variables, the rest being integers), the month and year they were admitted, their gender (1 for female, 0 for male), the descriptions made about them by the clerk (I'm not sure whether the integer indicates the number of descriptions or if it refers to a certain kind of description), the reasons they were discharged (again, the integer could be the number of reasons or it could correspond to a type of reason), and the month and year they were discharged. One interesting thing I found is, looking at the last 6 rows, these are people who have only a first name. Their last name is listed as either "NEGRO", "black boy", "black child", or "mulatto". This indicates that they were likely currently or formerly enslaved, as slave owners did not give last names to their slaves. It would be interesting to know if the clerk included any biographical data in the descriptions.
 
 
 CONGRATS! You've completed your first worksheet for Digital Methods II. That wasn't so bad, right? 
