@@ -408,15 +408,13 @@ gayguides$title[500]
 
 (@) The Year variable contains the year (numeric) of each entry. Can you find the earliest year in this dataset? (Using code, don't cheat and use the documentation!)
 ```{r}
-gayguides$Year[1] #preferred method
-head(gayguides$Year, n = 1) #not as elegant as the first method, in my opinion
+min(gayguides$Year)
 ```
 
 
 (@) How about the latest year? 
 ```{r}
-tail(gayguides$Year, n = 1)
-gayguides$Year[60698] #if you know the total number of rows for the dataset
+max(gayguides$Year)
 ```
 
 
@@ -430,6 +428,10 @@ tail(almshouse_admissions, n = 10L)
 ```
 ```{r}
 str(almshouse_admissions)
+```
+```{r}
+min(almshouse_admissions$Descriptions.by.Clerk)
+max(almshouse_admissions$Descriptions.by.Clerk)
 ```
 
 (@) What did you learn about the dataset? What can you tell me about it? 
