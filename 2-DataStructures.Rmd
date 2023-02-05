@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 2: Data Structures'
-author: "Amanda Regan"
-date: "2023-01-05"
+author: "Jessica Foster"
+date: "2023-02-05"
 output: pdf_document
 ---
 
@@ -42,7 +42,8 @@ x[c(3,3)]
 ```
 (@) Create your own vector and return three values using the subsetting method above. 
 ```{r}
-
+y <- c(10, 20, 30, 40, 50)
+y[c(1,4)]
 ```
 
 
@@ -53,7 +54,7 @@ x[-c(3, 1)]
 
 (@) What happened here? Describe this in your own words. 
 
->
+> The code returned all values in the vector x except for those values in the 3rd and 1st positions, in this case 2 and 15.4.
 
 You can use either positive or negative integers to subset a vector but you **cannot mix the two**.
 
@@ -70,7 +71,7 @@ x[x > 7]
 
 (@) What is going on in each of the lines above? Describe it in your own words. 
 
->
+> This code is testing whether each value in the vector x is greater than 7. Only those values greater than 7 are returned. It is TRUE that 15.4 is greater than 7, so 15.4 is returned. It is TRUE that 25 is greater than 7, so 25 is returned. It is FALSE that 2 is greater than 7, so 2 is excluded. It is TRUE that 8.35 is greater than 7, so 8.35 is returned. It is FALSE that 5 is greater than 7, so 5 is excluded. It is TRUE that 383 is greater than 7, so 383 is returned. Finally, it is TRUE that 10.2 is greater than 7, so 10.2 is returned.
 
 Nothing returns the original vector. This isn't that useful here but can come in handy when you have more complex structures like matrices and arrays. 
 ```{r}
@@ -82,7 +83,9 @@ If your vector is named, you can also use character vectors to return elements w
 (y <- setNames(x, letters[1:4]))
 y[c("d")]
 ```
-(@) What happened here? Explain this in your own words. 
+(@) What happened here? Explain this in your own words.
+
+> The first line of code uses the setNames() function to assign the first four letters of the alphabet to the first four values in the vector x. 15.40 is assigned a, 25 is assigned b, 2 is assigned c, and 8.35 is assigned d. The remaining values are not assigned letters. All these values are stored in the vector y. The second line of code returns the value named "d", which is 8.35.
 
 #### Matrices
 
