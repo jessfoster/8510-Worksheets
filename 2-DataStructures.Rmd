@@ -157,25 +157,26 @@ gayguides[1:3,]
 
 (@) Why is this different? What do we get compared to the previous example? 
 
->
+> In the previous example, we used a single index, 2:3, so the data frame behaved like a list and returned all the rows in columns 2 and 3. In the current example, we used two indices, so the data frame behaved like a matrix, returning the first three rows (1:3) and all the columns (,).
 
 (@) Can you find just the city and state for the first 5 entries? 
 ```{r}
-
+gayguides[1:5, c("city", "state")]
 ```
 
 (@) How about the street address and type for rows 2,555 to 2,560?
 
 ```{r}
-
+gayguides[2555:2560, c("streetaddress", "type")]
 ```
 
 (@) Load another dataset from `DigitalMethodsData`. Subset it to find some element of the data. Write the code below and then explain what element of the data you wanted to subset and why:
 ```{r}
-
+data("BostonWomenVoters")
+BostonWomenVoters[1:5, c("Name", "Age", "Occupation")]
 ```
 
-> 
+> I wanted to subset the first five rows of BostonWomenVoters to see the name, age, and occupation of the voters. With a larger and/or random sample like this, you could look for patterns in the voters' age and type of work.
 
 Another useful operator to know is `$` which we used a little bit in the previous worksheet. `$` is shorthand for accessing a variable in a dataframe. 
  
@@ -192,8 +193,7 @@ gayguides$city[100:110]
 
 (@) What does this code do? 
 
->
-
+> This code subsets the values in rows 100 to 110 of the City column in gayguides. It creates a matrix populated by rows. So the value in the 100th row of the City column, "San Diego," starts the matrix and it continues across five columns of the matrix before starting a new row.
 
 We can also use `$` to create a new column in `gayguides`. 
 ```{r}
