@@ -193,7 +193,7 @@ gayguides$city[100:110]
 
 (@) What does this code do? 
 
-> This code subsets the values in rows 100 to 110 of the City column in gayguides. It creates a matrix populated by rows. So the value in the 100th row of the City column, "San Diego," starts the matrix and it continues across five columns of the matrix before starting a new row.
+> This code subsets the values in rows 100 to 110 of the City column in gayguides. It creates a matrix of five columns filled by rows. So the value in the 100th row of the City column, "San Diego," starts the matrix and it continues across five columns of the matrix before starting a new row.
 
 We can also use `$` to create a new column in `gayguides`. 
 ```{r}
@@ -255,22 +255,39 @@ if (x > 90) {
 
 (@) You are teaching History 100 for Clemson. Write an `if` statement that calculates whether the enrollment cap of 30 on your class has been met. 
 ```{r}
-
+Enrollment.Cap <- 30
+My.Class <- 25
+if (My.Class >= Enrollment.Cap) {
+  print("There are no more seats available in your class.")
+} else {
+  print("There are still seats available in your class.")
+}
 ```
 
 (@) Create a list of presidents and store it in a variable. Use an `if` statement to check if the number of presidents in the list is more than 5. If its not indicate that too. 
 ```{r}
-
+Presidents.List <- c("Richard Nixon", "Ronald Reagan", "George Bush", "Bill CLinton")
+if (length(Presidents.List) > 5) {
+  print("There are more than 5 presidents in this list.")
+} else {
+  print("There are less than 5 presidents in this list.")
+}
 ```
 
 (@) You can also use an if statement to check a variable in a dataframe. How might you use an if statement to check if the GayGuides dataset contains any year after 1990? (Hint: first try to figure out how to determine the latest year in the dataframe and then build an if statement that checks that and prints something out if its true or false. You should think about what kind of value in contained in the Year column, how to access it, and how to check for the latest value.) 
 
 ```{r}
+Latest.Year <- max(gayguides$Year)
+if (Latest.Year > 1990) {
+  print("This dataset contains a year after 1990.")
+} else {
+  print("This dataset does not contain a year after 1990.")
+}
 ```
 
 (@) Reflect on the question above. How did you figure this out? What was the process you went through to build this chunk of code?
 
-> 
+> I remembered how to find the maximum value in a list of integers from the previous worksheet. So I used the max() function to find the largest number in the Year column and stored that in a variable, Latest.Year. Then I wrote an if statement to check whether this value was greater than 1990. My code prints out a message based on whether the statement is true or false.
 
 #### Loops
 
