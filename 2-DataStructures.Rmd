@@ -319,12 +319,16 @@ for (p in 1:length(presidents)) {
 
 (@) Why does this work? What does `length()` do and why do we use it on `presidents`?
 
-> 
+> The length() function finds the number of items in a vector, or list. It indexes the items in the vector starting with the number 1. There are 3 items in the vector presidents. The for loop starts at index 1 and prints out each item in the list until it reaches the end (or length) of the list, in this case 3.
 
 Create a character vector that contains the title of each of your classes this semester. Can you write a `for` loop that prints out "I am enrolled in" and the name of each of your classes? ("I am enrolled in History 8150", "I am enrolled in History 8000".....etc). Hint: you'll need a function to combine the output and some text of your choosing inside the function. 
 
 ```{r}
-
+My.Classes <- c("HIST-8510 Digital Methods II", "HIST-8800 Histories of Gender and Sexuality", "HIST-8860 Graduate Readings")
+for (x in 1:length(My.Classes)) {
+  enrolled <- paste("I am enrolled in", My.Classes[x], sep = " ")
+  print(enrolled)
+}
 ```
 
 Sometimes we want our loop to terminate itself early. There are two statements that help us do that: 
@@ -356,6 +360,7 @@ for (i in 1:10) {
 
 (@) What happened here? Why did the loop only print 3 and 4? 
 
+> The loop first skipped numbers 1 and 2 because of the "next" statement checking if i is less than 3. Since 1 and 2 are less than 3, they are excluded. The "break" statement stopped the loop when i became greater than or equal to 5. So it only printed 3 and 4 but not 5 or higher.
 
 (@) In the state population data, can you write a loop that pulls only states with populations between 200,000 and 250,000 in 1800? You could accomplish this a few different ways. Try to use next and break statements. 
 ```{r}
