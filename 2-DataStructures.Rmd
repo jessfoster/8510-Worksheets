@@ -428,7 +428,7 @@ historyStudents <- function(studentname, class) {
 ```
 (@) Can you run this function? 
 ```{r}
-
+historyStudents("Jess", "Digital Methods")
 ```
 
 
@@ -441,12 +441,17 @@ There are several components to a function.
 
 (@) Write a function that takes a string of text and counts the number of characters. The function should return "There are xx characters in that string." 
 ```{r}
-
+characterCount <- function(text) {
+  count <- nchar(text)
+  message <- paste("There are", count, "characters in that string.")
+  message
+}
+characterCount("Hello World")
 ```
 
 (@) Reflect on the process of building the above function. How did you go about figuring this out? 
 
->
+> First I thought about the function name. I tried to pick a descriptive one. Then I considered how many arguments the function needed. In this case it only needed one because the string was the only input, or value, that would be passed to the function. I named it "text". Next I thought about the action of the function. Since I couldn't remember how to count characters in a string, I looked it up and found the nchar() function. I passed my placeholder "text" to it and stored the result in a variable called "count." Then I created a message variable that would store the concatenated statement including the count variable. Lastly I wrote the return value "message". After creating the function, I ran it using the string "Hello World".
 
 The body of a functions can use any of the techniques we've learned in this worksheet like loops and if statements. For example: 
 ```{r}
@@ -472,9 +477,10 @@ grade(75)
 (@) In the example below, why doesn't George Washington's grade get printed out? 
 ```{r}
 GeorgeWashington <- grade(60)
+print(GeorgeWashington) #my addition
 ```
 
->
+> GeorgeWashington is a variable. When you run the code, the grade() function calculates the letter grade for 60, "C", and stores it in the GeorgeWashington variable. You can see it under Values in the RStudio environment. You would need to use the print() function to print out the grade, as I did above.
 
 
 Here's a more complex example: 
@@ -494,11 +500,30 @@ gg.locations <- function (city, year) {
 
 (@) Write a function that uses the things you've learned in this worksheet. The function should accept two arguments, city and year. It should pull all the locations in that city and year and return a statement that says "Found a location called xxx". (Where x is the title of a location in that year and city.) 
 ```{r}
+gg.locations <- function (city, year) {
 
+  for (i in 1:length(gayguides$city)) {
+    if (gayguides$city[i] == city && gayguides$Year[i] == year) {
+     print(paste("Found a location called", gayguides$title[i]))
+    } else {
+      next 
+    } 
+  }
+}
+gg.locations("Greenville", 1984)
 ```
 
 (@) Use the Boston Women Voter dataset. Write a function that accepts the name of an occupation. Your function should return new dataframe that includes the records for every voter listed with that occupation.  
 ```{r}
-
+Voters.By.Occupation <- function(occupation) {
+  for (i in 1:length(BostonWomenVoters$Occupation)) {
+    if (BostonWomenVoters$Occupation[i] == occupation) {
+      print(BostonWomenVoters[i, ])
+    } else {
+      next
+    }
+  }
+}
+Voters.By.Occupation("Lithographer")
 ```
-
+> I can't get this to work for occupations with numerous entries like "Housewife" or "Stenographer". I just picked an occupation with only one row.
