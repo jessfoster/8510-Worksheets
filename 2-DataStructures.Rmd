@@ -536,15 +536,17 @@ State.Bird("South Carolina")
 (@) Use the Boston Women Voter dataset. Write a function that accepts the name of an occupation. Your function should return new dataframe that includes the records for every voter listed with that occupation.  
 ```{r}
 Voters.By.Occupation <- function(occupation) {
-  
+  new.set <- data.frame()
   for (i in 1:length(BostonWomenVoters$Occupation)) {
     if (BostonWomenVoters$Occupation[i] == occupation) {
-      new.set <- BostonWomenVoters[i, ]
+      new.set <- rbind(new.set, BostonWomenVoters[i, ])
     } else {
       next
     }
   }
   return(new.set)
 }
-Voters.By.Occupation("Secretary")
+# Call function for occupation Secretary and store new dataframe in variable to access later
+# Can now perform operations on new dataframe
+Secretary.Data <- Voters.By.Occupation("Secretary")
 ```
