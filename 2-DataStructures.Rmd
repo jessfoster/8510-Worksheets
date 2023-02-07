@@ -516,11 +516,9 @@ gg.locations <- function (city, year) {
 
 (@) Write a function that uses the things you've learned in this worksheet. The function should accept two arguments, city and year. It should pull all the locations in that city and year and return a statement that says "Found a location called xxx". (Where x is the title of a location in that year and city.) 
 ```{r}
-data(statebirds)
 # Since you accidentally gave us the answer above, I'm writing a different function here. I decided to create a simple dataset of state birds and import it to use in my function.
-
+statebirds <- read.csv("../statebirds.csv", header=TRUE)
 State.Bird <- function(state) {
-  data(statebirds)
   for (i in 1:length(statebirds$state)) {
     if (statebirds$state[i] == state) {
       print(paste("The state bird of ", state, " is the ", statebirds$bird[i], ". Its scientific name is ", statebirds$scientific_name[i], ".", sep=""))
