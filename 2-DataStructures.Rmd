@@ -1,8 +1,11 @@
 ---
 title: 'Worksheet 2: Data Structures'
 author: "Jessica Foster"
-date: "2023-02-05"
-output: pdf_document
+date: "2023-02-07"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
 ---
 
 _This is the second in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document to a pdf, and upload it to canvas._
@@ -364,9 +367,11 @@ for (i in 1:10) {
 
 (@) In the state population data, can you write a loop that pulls only states with populations between 200,000 and 250,000 in 1800? You could accomplish this a few different ways. Try to use next and break statements. 
 ```{r}
-# This line removes all rows from the dataframe with "NA"
+data(statepopulations)
+
+# Remove all rows from the dataframe with "NA" in column X1800
 statepopulations.Filtered <- statepopulations[complete.cases(statepopulations$X1800), ]
-# This line sorts the filtered dataframe by the X1800 column in ascending order
+# Sort the filtered dataframe by the values in the X1800 column in ascending order
 statepopulations.Sorted <- statepopulations.Filtered[order(statepopulations.Filtered$X1800, decreasing = FALSE), ]
 
 print(statepopulations.Sorted) # Printing out my filtered & sorted dataframe because I'm proud of it lol
@@ -511,30 +516,35 @@ gg.locations <- function (city, year) {
 
 (@) Write a function that uses the things you've learned in this worksheet. The function should accept two arguments, city and year. It should pull all the locations in that city and year and return a statement that says "Found a location called xxx". (Where x is the title of a location in that year and city.) 
 ```{r}
-gg.locations <- function (city, year) {
+data(statebirds)
+# Since you accidentally gave us the answer above, I'm writing a different function here. I decided to create a simple dataset of state birds and import it to use in my function.
 
-  for (i in 1:length(gayguides$city)) {
-    if (gayguides$city[i] == city && gayguides$Year[i] == year) {
-     print(paste("Found a location called", gayguides$title[i]))
-    } else {
-      next 
-    } 
-  }
-}
-gg.locations("Greenville", 1984)
-```
-
-(@) Use the Boston Women Voter dataset. Write a function that accepts the name of an occupation. Your function should return new dataframe that includes the records for every voter listed with that occupation.  
-```{r}
-Voters.By.Occupation <- function(occupation) {
-  for (i in 1:length(BostonWomenVoters$Occupation)) {
-    if (BostonWomenVoters$Occupation[i] == occupation) {
-      print(BostonWomenVoters[i, ])
+State.Bird <- function(state) {
+  data(statebirds)
+  for (i in 1:length(statebirds$state)) {
+    if (statebirds$state[i] == state) {
+      print(paste("The state bird of ", state, " is the ", statebirds$bird[i], ". Its scientific name is ", statebirds$scientific_name[i], ".", sep=""))
     } else {
       next
     }
   }
 }
-Voters.By.Occupation("Lithographer")
+
+State.Bird("South Carolina")
 ```
-> I can't get this to work for occupations with numerous entries like "Housewife" or "Stenographer". I just picked an occupation with only one row.
+
+(@) Use the Boston Women Voter dataset. Write a function that accepts the name of an occupation. Your function should return new dataframe that includes the records for every voter listed with that occupation.  
+```{r}
+Voters.By.Occupation <- function(occupation) {
+  
+  for (i in 1:length(BostonWomenVoters$Occupation)) {
+    if (BostonWomenVoters$Occupation[i] == occupation) {
+      new.set <- BostonWomenVoters[i, ]
+    } else {
+      next
+    }
+  }
+  return(new.set)
+}
+Voters.By.Occupation("Secretary")
+```
