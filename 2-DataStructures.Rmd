@@ -193,7 +193,7 @@ gayguides$city[100:110]
 
 (@) What does this code do? 
 
-> This code subsets the values in rows 100 to 110 of the City column in gayguides. It creates a matrix of five columns filled by rows. So the value in the 100th row of the City column, "San Diego," starts the matrix and it continues across five columns of the matrix before starting a new row.
+> This code subsets the values in rows 100 to 110 of the City column in gayguides. It creates a matrix of five columns filled by rows. So the value in the 100th row of the City column, "San Diego," starts the matrix and it continues across five columns of the matrix before starting a new row. However, I'm not sure why it creates a 5-column matrix by default.
 
 We can also use `$` to create a new column in `gayguides`. 
 ```{r}
@@ -365,11 +365,24 @@ for (i in 1:10) {
 (@) In the state population data, can you write a loop that pulls only states with populations between 200,000 and 250,000 in 1800? You could accomplish this a few different ways. Try to use next and break statements. 
 ```{r}
 
+for (i in 1:length(statepopulations$X1800)) {
+  
+  if (is.na(statepopulations$X1800[i]) | statepopulations$X1800[i] < 200000) 
+    next
+  
+  if (statepopulations$X1800[i] >= 250000)
+    break
+
+  print(statepopulations$STATE[i])
+}
 ```
 
 (@) What if we wanted to loop through the gay guides data? Can you write a loop that iterates through the cities in the Gay Guides data and returns the title of any location in Greenville? 
 ```{r}
-
+for (i in 1:length(gayguides$city)) {
+  if (gayguides$city[i] == "Greenville")
+    print(gayguides$title[i])
+}
 ```
 
 `while` is another useful tool for writing loops. While will run a loop _while_ a condition is true. Once that condition is not true, it exits. For example: 
