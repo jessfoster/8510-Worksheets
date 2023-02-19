@@ -116,13 +116,16 @@ statepopulations %>% mutate(difference = X1900 - X1800)
 
 (@) In the Boston Women Voters dataset, every voter is given an age. Can you use their age to calculate each person's birth year? (Assume all this data was collected in 1920.)
 ```{r}
-
+data("BostonWomenVoters")
+BostonWomenVoters %>% mutate(Birth.Year = 1920 - Age)
 ```
 
 (@) Can you create a new column that combines the city and state columns in `gayguides` into a new column called location? It should list the city, state. (i.e. San Diego, CA)
 
 ```{r}
-
+gayguides %>%
+  select(city, state) %>%
+  mutate(location = paste(city, state, sep=", "))
 ```
 
 ### Arrange
@@ -139,7 +142,11 @@ gayguides %>%
 
 (@) Using the `statepopulation` data, which state has the largest population in 1850? Write code that pulls only the relevant columns (state and 1850) and sorts it accordingly. 
 ```{r}
+statepopulations %>%
+  select(STATE, X1850) %>%
+  arrange(desc(X1850))
 
+# New York has the largest population in 1850
 ```
 
 ### Group_by() and Summarize()
