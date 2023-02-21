@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 3: Data Manipulation'
 author: "Jessica Foster"
-date: "2023-02-19"
+date: "2023-02-20"
 output:
   html_document:
     df_print: paged
@@ -242,7 +242,7 @@ gayguides_regions %>%
   select(Year, Division) %>% # Select Year and Division columns
   filter(Year == 1980) %>% # Filter new data frame by Year 1980
   group_by(Division) %>% # Group by Division
-  summarize(count = n())
+  summarize(count = n()) # Show number of locations in each region in 1980
 
 # 285 locations in the Mountain region in 1980
 ```
@@ -254,14 +254,13 @@ gayguides_regions %>%
 (@)How much did LGTBQ life grow between 1970 and 1980? Can you create a data frame that computes the growth in the number of locations between 1970 and 1980 for every state? For every region? 
 ```{r}
 library(tidyr)
-gayguides_growth <- gayguides_regions %>%
-  select(state, Year, Division) %>%
-  filter(Year == 1970 | Year == 1980) %>%
-  group_by(Year, state, Division) %>%
-  summarize(count = n()) %>%
-  pivot_wider(names_from = Year, names_glue = "Year.{Year}", values_from = count, values_fill = 0) %>%
-  mutate(growth = Year.1980 - Year.1970)
-
+gayguides_growth <- gayguides_regions %>% # Perform operations on gayguides_regions df
+  select(state, Year, Division) %>% # Select state, Year, and Division columns
+  filter(Year == 1970 | Year == 1980) %>% # Filter by years 1970 & 1980
+  group_by(Year, state, Division) %>% # Group by Year, state, Division
+  summarize(count = n()) %>% # Show number of locations in each state & Division
+  pivot_wider(names_from = Year, names_glue = "Year.{Year}", values_from = count, values_fill = 0) %>% # Convert 1970 and 1980 to columns named Year.1970 & Year.1980
+  mutate(growth = Year.1980 - Year.1970) # Subtract values of Year.1970 from Year.1980 to calculate growth in locations, show in growth column
 ```
 
 
@@ -280,11 +279,15 @@ sc.parks <- sc.parks %>%
 ```
 
 (@) What did this code do? 
->
+> The code converts the columns X1930, X1935, etc., into row values under a single column named year. It also creates a new column called count to store the values previously under each year column. These values are still attached to the year. The code also excludes the columns from city through type_of_worker from the pivoting process. Overall, the code decreases the number of columns from 6 to 4 and increases the number of rows.
 
 (@) Here's another wide data frame. Can you turn this from a wide to a narrow data frame? 
 ```{r}
 rec.spaces <- read.csv("https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/PlayAreabyType.csv")
+```
+```{r}
+rec.spaces <- rec.spaces %>%
+  pivot_longer(!type, names_to = "year", values_to = "count")
 ```
 
 The opposite of `pivot_longer()` is `pivot_wider()`. It "widens" data by increasing the number of columns and decreasing the number of rows. We can revert `sc.parks` back to a wide dataset using this function.
@@ -295,12 +298,14 @@ sc.parks %>%
 
 (@) Widen the `sc.parks` dataset so that the column names are drawn from the type of recreation worker.
 ```{r}
-
+sc.parks %>%
+  pivot_wider(names_from = type_of_worker, values_from = count)
 ```
 
 (@) Turn `rec.spaces` into a wide dataframe. 
 ```{r}
-
+rec.spaces %>%
+  pivot_wider(names_from = type, values_from = count)
 ```
 
 
@@ -316,25 +321,52 @@ The implicit question was, "How many locations appear in each year?". The `judge
 
 (@) First, tell me, what is the question you are asking? 
 ```{r}
-
+data("judges")
+# How many judges of each race/ethnicity have served in U.S. District Courts since 1789? 
 ```
 
 (@) Now write some code to address that question. Comment the code with notes that explain your thinking as you go. Use functions like select(), filter(), etc to pair down your dataset and reshape it to address your question. 
 ```{r}
+judges %>%
+  select(Race.or.Ethnicity, starts_with("Court.Type")) %>% # Select Race.or.Ethnicity and Court.Type columns
+  filter(grepl('U.S. District Court', paste(`Court.Type..1.`, `Court.Type..2.`, `Court.Type..3.`, `Court.Type..4.`, `Court.Type..5.`, `Court.Type..6.`))) %>%
+  group_by(Race.or.Ethnicity, Court.Type..1., Court.Type..2., Court.Type..3., Court.Type..4., Court.Type..5., Court.Type..6.) %>%
+  summarize(count = n()) %>%
+  unite(District.Court, starts_with("Court.Type"), na.rm = TRUE)
+ # pivot_wider(names_from = paste(Court.Type..1., `Court.Type..2.`, `Court.Type..3.`, `Court.Type..4.`, `Court.Type..5.`, `Court.Type..6.`), values_from = count) #%>%
+ # unite(data, date, c(year, month))
+  #rename("U.S.District.Court" = `U.S. District Court`) %>%
+  #arrange(desc(U.S.District.Court))
 
 ```
 
 (@) Now ask a question of the `gayguides` data (or another dataset of your choice). What is the question you are asking? 
 ```{r}
-
+# re:rec.spaces > How much did each type of recreational space grow between 1930 and 1940?
 ```
 
 (@) Now write some code to address that question. Comment the code with notes that explain your thinking as you go. Use functions like select(), filter(), etc to pair down your dataset and reshape it to address your question. 
 ```{r}
-
+rec.growth <- rec.spaces %>% # Create new data frame called rec_growth to show results
+  # Skip select() because only 3 columns
+  pivot_wider(names_from = year, values_from = count) %>% # Convert df back to original shape
+  select(type, X1930, X1940) %>% # Select type column and only years 1930 and 1940 columns
+  mutate(growth = X1940 - X1930) # Subtract values of X1935 from X1945 to calculate growth in rec spaces, show in growth column
 ```
 
 (@) Write a function that filters the gay guides dataset. It should accept 2 arguments: year and state. When passed to the function the function should return only the title, type, state and year for each entry. 
 ```{r}
-
+Gayguides.Filter <- function(gg.state, gg.year) { # Give arguments different names than gayguides column names to avoid confusion
+  
+data("gayguides")
+library(tidyr)
+  
+  gayguides %>%
+    select(title, type, state, Year) %>% # Select title, type, state, and Year columns
+    filter(state == gg.state & Year == gg.year) %>% # Insert arguments into filter
+    group_by(title, type, state, Year) # Display title, type, state, and Year for each entry
+}
+```
+```{r}
+Gayguides.Filter("NY", 1983) # Filter gayguides to return subset of locations in New York state for year 1983
 ```
