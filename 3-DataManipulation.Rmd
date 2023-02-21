@@ -97,13 +97,13 @@ gayguides %>%
 ```{r}
 gayguides %>%
   filter(Year == 1975) %>%
-  filter(state != "NY" & city != "San Francisco") # Filtered for New York state, not New York City.
+  filter(state != "NY" & city != "San Francisco")
 ```
 
 (@) The amenity features column in gay guides contains a comma separated list of categorizations. (G), for example, stands for girls. However, this language changed over time and women's locations eventually are described as (L). What if we want to filter by any entry that has (G) OR (L) in the amenity feature column?  This is a bit more complicated because the entries are a comma separated list and (G) or (L) is often paired with other categorizations. How might you _search the dataframe for entries that match_ (G) or (L)?
 ```{r}
 gayguides %>%
-  filter(grepl('(G)|(L)', amenityfeatures)) # Used the grepl() function within the filter
+  filter(grepl('(G)|(L)', amenityfeatures)) # Find any record that has (G) or (L) in the amenityfeatures column
 ```
 
 ### Mutate
@@ -180,7 +180,7 @@ gayguides %>%
 BostonWomenVoters %>%
   select(Age, Occupation) %>% # Select Age and Occupation columns
   group_by(Occupation) %>% # Group by Occupation
-  summarize(Average.Age = round(mean(Age), digits = 1)) # Use mean() function to find average age for each occupation, round to 1 digit after decimal, show in new Average.Age column
+  summarize(Average.Age = round(mean(Age), digits = 1)) # Find average age for each occupation, round to 1 digit after decimal, show in new Average.Age column
 ```
 
 (@) In the `gayguides` data, on average how many locations did each city in South Carolina have between 1970 and 1975?
@@ -194,7 +194,7 @@ locations <- gayguides %>% # Create new data frame to store results of first sor
 
 locations %>% # Perform operations on new data frame
   group_by(city) %>% # Group by city
-  summarize(average = round(mean(count), digits = 2)) # Use mean() function to find average number of locations in each city in SC, round to 2 digits after decimal, show in new average column
+  summarize(average = round(mean(count), digits = 2)) # Find average number of locations in each city in SC, round to 2 digits after decimal, show in new average column
 ```
 
 (@) Filter the dataset for only the values in the southernstates list (created in the block below). Then tell me, how many locations were in all the southern states in 1975?
@@ -328,16 +328,12 @@ data("judges")
 (@) Now write some code to address that question. Comment the code with notes that explain your thinking as you go. Use functions like select(), filter(), etc to pair down your dataset and reshape it to address your question. 
 ```{r}
 judges %>%
-  select(Race.or.Ethnicity, starts_with("Court.Type")) %>% # Select Race.or.Ethnicity and Court.Type columns
-  filter(grepl('U.S. District Court', paste(`Court.Type..1.`, `Court.Type..2.`, `Court.Type..3.`, `Court.Type..4.`, `Court.Type..5.`, `Court.Type..6.`))) %>%
-  group_by(Race.or.Ethnicity, Court.Type..1., Court.Type..2., Court.Type..3., Court.Type..4., Court.Type..5., Court.Type..6.) %>%
-  summarize(count = n()) %>%
-  unite(District.Court, starts_with("Court.Type"), na.rm = TRUE)
- # pivot_wider(names_from = paste(Court.Type..1., `Court.Type..2.`, `Court.Type..3.`, `Court.Type..4.`, `Court.Type..5.`, `Court.Type..6.`), values_from = count) #%>%
- # unite(data, date, c(year, month))
-  #rename("U.S.District.Court" = `U.S. District Court`) %>%
-  #arrange(desc(U.S.District.Court))
-
+  select(Race.or.Ethnicity, starts_with("Court.Type")) %>% # Select Race.or.Ethnicity and all Court.Type columns
+  filter(grepl('U.S. District Court', paste(`Court.Type..1.`, `Court.Type..2.`, `Court.Type..3.`, `Court.Type..4.`, `Court.Type..5.`, `Court.Type..6.`))) %>% # Find all records with U.S. District Court in one of the Court.Type columns
+  group_by(Race.or.Ethnicity) %>% # Group by Race.or.Ethnicity
+  summarize(District.Court = n()) %>% # Show total number of judges for each race/ethnicity in District.Court column
+  arrange(desc(District.Court)) # Arrange values in District.Court column in descending order
+# This shows, unsurprisingly, that majority of district court judges have been White, with African American and Hispanic judges comprising small minorities
 ```
 
 (@) Now ask a question of the `gayguides` data (or another dataset of your choice). What is the question you are asking? 
