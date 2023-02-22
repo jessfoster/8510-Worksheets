@@ -131,21 +131,38 @@ ggplot(sc.rec, aes(x = state, y = state.expenditures )) +
 
 (@) Using the `gayguides` data, create a bar chart that shows the number of locations in 1980 in South Carolina, Georgia, and North Carolina. 
 ```{r}
-
+gg.chart <- gayguides %>% 
+  filter(Year == 1980) %>%
+  filter(state == "SC" | state == "GA" | state == "NC") %>%
+  group_by(state) %>%
+  summarize(count = n())
+ggplot(data = gg.chart, mapping = aes(x = state, y = count)) +
+ geom_col()
 ```
 
 (@) Using the `gayguides` data, plot the number of religious institutions in each state.
 ```{r}
-
+gg.religious <- gayguides %>%
+  filter(type == "Religious Institution") %>%
+  group_by(state) %>%
+  summarize(count = n())
+ggplot(data = gg.religious, mapping = aes(x = state, y = count)) +
+  geom_col()
 ```
 
 (@) Formulate a question based on a dataset of your choice. That question should be something that would be appropriately answered by a bar chart. What is the question you want to explore?
 
-<
+> Which countries did voters with the occupation of Nurse come from?
 
 (@) Now write the code to answer that question and use comments (`#`) to explain your thinking as you go.
 ```{r}
+nurses <- BostonWomenVoters %>% # Create variable to store filtered data
+  filter(Occupation == "Nurse") %>% # Filter dataset by occupation of nurse
+  group_by(Country.of.Birth) %>% # Group by country of birth
+  summarize(count = n()) # Summarize results in count column
 
+ggplot(data = nurses, mapping = aes(x = Country.of.Birth, y = count)) + # Tell ggplot to use nurses dataset and map variables Country.of.Birth to x-axis and count to y-axis.
+  geom_col() # Create a bar chart to display the data
 ```
 
 ### Line Charts
