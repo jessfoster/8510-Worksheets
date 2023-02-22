@@ -86,6 +86,9 @@ ggplot(data = gapminder, mapping = aes(x = gdpPercap, y=lifeExp, color=year)) + 
 ```{r}
 rec <- read.csv(file = "https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/Recreation-Expenditures.csv")
 ```
+```{r}
+ggplot(data = rec, mapping = aes(x = population, y=total_expenditures, color=state)) + geom_point()
+```
 
 The `geom_point()` function allows us to create scatterplots but its not the only geom within `ggplot2()`.
 
@@ -102,17 +105,19 @@ ggplot(recreational.data, aes(x = population)) +
 
 (@) Use the Boston Women's voters dataset to create a histogram of the age of voters. 
 ```{r}
-
+ggplot(BostonWomenVoters, aes(x = Age)) +
+  geom_histogram()
 ```
 
 (@) By default, `geom_histogram()` is choosing the number of bins. Can you change the number of bins or the bin width? (Hint: How might you look up the options for this function?)
 ```{r}
-
+ggplot(BostonWomenVoters, aes(x = Age)) +
+  geom_histogram(bins = 20)
 ```
 
 (@) Explain, what does changing the number of bins do? 
 
-> 
+> The default number of bins for geom_histogram() is 30. I decreased the number of bins to 20, whihc increased the width of the bins. This means that the age categories, represented by the bins, are larger. The visualization is less nuanced.
 
 ### Barplots 
 
