@@ -78,7 +78,10 @@ ggplot(data = gapminder, mapping = aes(x = gdpPercap, y=lifeExp, color=year)) + 
 
 (@) Using the same plot above, can you edit the code to add a trend line? (Hint: You'll need to add another geom)
 ```{r}
-ggplot(data = gapminder, mapping = aes(x = gdpPercap, y=lifeExp, color=year)) + geom_point() + labs(x="GDP Per Capita", y="Life Expectency in Years", title="Life Expectency and Per Capita GDP by Year") + geom_smooth()
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, color = year)) + 
+  geom_point() + 
+  labs(x="GDP Per Capita", y="Life Expectency in Years", title="Life Expectency and Per Capita GDP by Year") + 
+  geom_smooth()
 ```
 
 
@@ -87,7 +90,8 @@ ggplot(data = gapminder, mapping = aes(x = gdpPercap, y=lifeExp, color=year)) + 
 rec <- read.csv(file = "https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/Recreation-Expenditures.csv")
 ```
 ```{r}
-ggplot(data = rec, mapping = aes(x = population, y=total_expenditures, color=state)) + geom_point()
+ggplot(rec, aes(x = population, y = total_expenditures, color = state)) + 
+  geom_point()
 ```
 
 The `geom_point()` function allows us to create scatterplots but its not the only geom within `ggplot2()`.
@@ -136,7 +140,7 @@ gg.chart <- gayguides %>%
   filter(state == "SC" | state == "GA" | state == "NC") %>%
   group_by(state) %>%
   summarize(count = n())
-ggplot(data = gg.chart, mapping = aes(x = state, y = count)) +
+ggplot(gg.chart, aes(x = state, y = count)) +
  geom_col()
 ```
 
@@ -146,7 +150,7 @@ gg.religious <- gayguides %>%
   filter(type == "Religious Institution") %>%
   group_by(state) %>%
   summarize(count = n())
-ggplot(data = gg.religious, mapping = aes(x = state, y = count)) +
+ggplot(gg.religious, aes(x = state, y = count)) +
   geom_col()
 ```
 
@@ -161,7 +165,7 @@ nurses <- BostonWomenVoters %>% # Create variable to store filtered data
   group_by(Country.of.Birth) %>% # Group by country of birth
   summarize(count = n()) # Summarize results in count column
 
-ggplot(data = nurses, mapping = aes(x = Country.of.Birth, y = count)) + # Tell ggplot to use nurses dataset and map variables Country.of.Birth to x-axis and count to y-axis.
+ggplot(nurses, aes(x = Country.of.Birth, y = count)) + # Tell ggplot to use nurses dataset and map variables Country.of.Birth to x-axis and count to y-axis.
   geom_col() # Create a bar chart to display the data
 ```
 
@@ -181,7 +185,7 @@ gg.religious <- gayguides %>%
   filter(type == "Religious Institution") %>%
   group_by(Year) %>%
   summarize(count = n())
-ggplot(data = gg.religious, mapping = aes(x = Year, y = count)) +
+ggplot(gg.religious, aes(x = Year, y = count)) +
   geom_line()
 ```
 
@@ -192,7 +196,7 @@ gg.risk <- gayguides %>%
   group_by(Year) %>%
   summarize(count = n())
 
-ggplot(data = gg.risk, mapping = aes(x = Year, y = count)) +
+ggplot(gg.risk, aes(x = Year, y = count)) +
   geom_line()
 ```
 
@@ -209,19 +213,50 @@ ggplot(gg.byyear, aes(x = Year, y = count)) +
 
 (@) Using the state recreation data, can you create a chart that outlines the total expenditures in South Carolina by city?
 ```{r}
+rec.sc <- recreational.data %>%
+  filter(state == "SC") %>%
+  select(city, state, total_expenditures) %>%
+  group_by(city, total_expenditures)
 
+ggplot(rec.sc, aes(x = state, y = total_expenditures)) +
+  geom_col() + facet_wrap(~city)
 ```
 
 (@) Using the gayguides data can you select 5 types of locations and chart the number of each type between 1965 and 1980? 
 ```{r}
+gg.types <- gayguides %>%
+  filter(Year >= 1965 & Year <= 1980) %>%
+  filter(type == "Cruising Areas" | type == "Restaurant" | type == "Book Store" | type == "Religious Institution" | type == "Theatre") %>% # Initially used grepl() because many locations have multiple types listed but that didn't work well with facets (it created many, many facets), so switched to looking for locations of one type only
+  group_by(type, Year) %>%
+  summarize(count = n())
 
+ggplot(gg.types, aes(x = Year, y = count)) +
+  geom_line() + facet_wrap(~type)
 ```
 
 (@) Using this recreation dataset from last week, can you find the average number of volunteer and paid workers over time? 
 ```{r}
-rec.workers <- read.csv("https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv")
+#rec.workers <- read.csv("https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv") # This URL doesn't work so I'm going to replace it below
 
+rec.workers <- read.csv("https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/RecreationData-Wide.csv")
 
+rec.workers <- rec.workers %>%
+  pivot_longer(!city:type_of_worker, names_to = "year", values_to = "count") %>%
+  pivot_wider(names_from = type_of_worker, values_from = count) %>%
+  rename(c("male.paid" = "male paid", "female.paid" = "female paid", "men.volunteer" = "men volunteer", "women.volunteer" = "women volunteer")) %>%
+  replace(is.na(.), 0) %>%
+  rowwise() %>%
+  mutate(paid.average = mean(c(male.paid, female.paid))) %>%
+  mutate(volunteer.average = mean(c(men.volunteer, women.volunteer, volunteer))) %>%
+  select(city, year, paid.average, volunteer.average) %>%
+  mutate(year = str_replace(year, "X", "")) %>%
+  mutate(year = as.integer(year))
+
+ggplot(rec.workers, aes(x=year)) + 
+  geom_line(aes(y = paid.average), color = "red") + 
+  geom_line(aes(y = volunteer.average), color="blue") +
+  labs(x="Year", y="Avg. Number of Volunteer & Paid Workers") +
+  facet_wrap(~city)
 ```
 
 ### Practice
