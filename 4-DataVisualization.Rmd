@@ -310,8 +310,19 @@ ggplot(almshouse.graph) +
 (@) Plot 3. For this one, try a different kind of plot. [Check out a useful gallery here.](https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv)
 (For this week, avoid choosing a map. We'll talk more about maps and geographic data over the next two weeks.)
 ```{r}
+library(treemap)
+
+gg.treemap <- gayguides_regions %>%
+  select(Year, Region, Division) %>% # Select Year and Division columns
+  filter(Year == 1985) %>% # Filter new data frame by Year 1985
+  na.omit() %>%
+  group_by(Region, Division) %>% # Group by Division
+  summarize(count = n()) # Show number of locations in each region in 1985
+
+treemap(gg.treemap, index=c("Region", "Division"), vSize="count", type="index", title="Locations in 1985", )
 
 ```
 
-(@) Plot 3 explanation: 
->
+(@) Plot 3 explanation:
+
+> I decided to use a treemap this time.
