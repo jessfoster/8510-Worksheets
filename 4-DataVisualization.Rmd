@@ -192,12 +192,14 @@ ggplot(gg.religious, aes(x = Year, y = count)) +
 (@) In the gayguides data, danger or risk is indicated in several different ways. Sometimes it through the use of an amenity categorization of (HOT) or (AYOR) which meant that these locations were frequented by police and should be used at your own risk. Othertimes, locations were listed as "inquire locally" in either the description or address field. There are many reasons a location would have requested to have been listed this way. Many times, it was due to harassment and the location deemed it too dangerous to publically list its location. Can you create a subset of the gay guides data about risk and then use it to create a chart about the usage of these indicators over time? 
 ```{r}
 gg.risk <- gayguides %>%
-  filter(grepl("(HOT)|(AYOR)", amenityfeatures) | grepl("inquire locally", description, ignore.case = TRUE) | grepl("inquire locally", streetaddress, ignore.case = TRUE) | grepl("inquire", title, ignore.case = TRUE)) %>%
+  filter(grepl("(HOT)|(AYOR)", amenityfeatures) | grepl("inquire locally", description, ignore.case = TRUE) | grepl("inquire locally", streetaddress, ignore.case = TRUE) | grepl("inquire", title, ignore.case = TRUE)) %>% # Filter for all entries indicating risk
   group_by(Year) %>%
   summarize(count = n())
 
 ggplot(gg.risk, aes(x = Year, y = count)) +
   geom_line()
+
+# Graph shows entries with risk indicators increased substantially between 1975 and 1985
 ```
 
 
@@ -241,22 +243,22 @@ ggplot(gg.types, aes(x = Year, y = count)) +
 rec.workers <- read.csv("https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/RecreationData-Wide.csv")
 
 rec.workers <- rec.workers %>%
-  pivot_longer(!city:type_of_worker, names_to = "year", values_to = "count") %>%
-  pivot_wider(names_from = type_of_worker, values_from = count) %>%
-  rename(c("male.paid" = "male paid", "female.paid" = "female paid", "men.volunteer" = "men volunteer", "women.volunteer" = "women volunteer")) %>%
-  replace(is.na(.), 0) %>%
-  rowwise() %>%
-  mutate(paid.average = mean(c(male.paid, female.paid))) %>%
-  mutate(volunteer.average = mean(c(men.volunteer, women.volunteer, volunteer))) %>%
-  select(city, year, paid.average, volunteer.average) %>%
-  mutate(year = str_replace(year, "X", "")) %>%
-  mutate(year = as.integer(year))
+  pivot_longer(!city:type_of_worker, names_to = "year", values_to = "count") %>% # Make df longer to show how many volunteers or workers per year per city
+  pivot_wider(names_from = type_of_worker, values_from = count) %>% # Make df wider to show count per type of worker
+  rename(c("male.paid" = "male paid", "female.paid" = "female paid", "men.volunteer" = "men volunteer", "women.volunteer" = "women volunteer")) %>% # Remove spaces from column names
+  replace(is.na(.), 0) %>% # Convert NA's to 0 for computing
+  rowwise() %>% # Tell dplyr to apply future changes to each row rather than across all rows
+  mutate(paid.average = mean(c(male.paid, female.paid))) %>% # Calculate average number of paid workers for each city
+  mutate(volunteer.average = mean(c(men.volunteer, women.volunteer, volunteer))) %>% # Calculate average number of volunteers for each city
+  select(city, year, paid.average, volunteer.average) %>% # Select relevant columns
+  mutate(year = str_replace(year, "X", "")) %>% # Remove "X" from year column names
+  mutate(year = as.integer(year)) # Convert year column from character to integer data type
 
 ggplot(rec.workers, aes(x=year)) + 
-  geom_line(aes(y = paid.average), color = "red") + 
-  geom_line(aes(y = volunteer.average), color="blue") +
-  labs(x="Year", y="Avg. Number of Volunteer & Paid Workers") +
-  facet_wrap(~city)
+  geom_line(aes(y = paid.average), color = "red") + # Plot paid workers as red line
+  geom_line(aes(y = volunteer.average), color="blue") + # Plot volunteers as blue line
+  labs(x="Year", y="Avg. Number of Volunteer & Paid Workers") + # Tidy up axis labels
+  facet_wrap(~city) # Create separate plots for each city in SC
 ```
 
 ### Practice
@@ -265,18 +267,45 @@ In the slots below use the datasets for class (or a dataset of your choice) to c
 (@) Plot 1
 ```{r}
 
+lifeExp.graph <- gapminder %>%
+  select(country, continent, year, lifeExp) %>% # Select relevant columns
+  group_by(year, continent) %>% # Group by continent and year
+  summarize(meanLifeExp = mean(lifeExp)) # Calculate average life expectancy per continent
+
+ggplot(lifeExp.graph) +
+  geom_line(aes(x=year, y=meanLifeExp)) +
+  facet_wrap(~continent)
 ```
 
 (@) Plot 1 explanation: 
->
+
+> I wanted to know how the average life expectancy for each continent changed over time. Of course I knew in advance that life expectancy has increased worldwide since 1952, but I was interested to see it broken down by continent. In the Americas and Asia, average life expectancy has increased by a greater factor than Europe and Oceania, which were already relatively high in 1952. Africa has also seen an increase, but it started very low, around age 39, and has not risen above 55 as of 2007. Using continent categories conceals the sharp contrast in living conditions between countries within each continent. For example, the Americas includes Central and South America, which have historically had lower life expectancy than North America. There is a fairly wide range in Asia too. There is also the Middle East, which is considered part of Asia for this dataset. Finally, radical changes in life expectancy due to war, genocide, epidemics, and famines are not captured in this graph.
 
 (@) Plot 2
 ```{r}
+library(lubridate)
+
+almshouse.graph <- almshouse_admissions %>%
+  mutate(Date.Admitted = make_date(year = Year.Admitted, month = Month.Admitted)) %>% # Combine Year.Admitted and Month.Admitted columns, convert to YYYY-MM-DD format, display in Date.Admitted column
+  mutate(Date.Discharged = make_date(year = YearDischarged, month = MonthDischarged)) %>% # Combine YearDischarged and MonthDischarged columns, convert to YYYY-MM-DD format, display in Date.Discharged column
+  select(Last.Name, First.Name, Gender, Date.Admitted, Date.Discharged) %>% # Select relevant columns
+  na.omit() %>% # Remove all entries with NA
+  filter(Gender != 2) %>% # Remove unknown gender
+  mutate(Length.of.Stay = interval(Date.Admitted, Date.Discharged) %/% months(1)) %>% # Calculate length of stay in almshouse in months
+  group_by(Gender) %>%
+  mutate(Gender = str_replace(Gender, "0", "Male")) %>%
+  mutate(Gender = str_replace(Gender, "1", "Female")) %>%
+  summarize(Average.Length.of.Stay = mean(Length.of.Stay))
+
+ggplot(almshouse.graph) +
+  labs(y="Average Length of Stay") + # Tidy up y-axis label
+  geom_col(aes(x=Gender, y=Average.Length.of.Stay, fill=Gender))
 
 ```
 
 (@) Plot 2 explanation: 
->
+
+> I wanted to find the average length of stay in the almshouse for men and women.
 
 (@) Plot 3. For this one, try a different kind of plot. [Check out a useful gallery here.](https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv)
 (For this week, avoid choosing a map. We'll talk more about maps and geographic data over the next two weeks.)
