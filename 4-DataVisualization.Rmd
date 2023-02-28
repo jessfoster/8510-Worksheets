@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 4: Data Visualization'
-author: 'Jessica Foster'
-date: '2023-02-27'
+author: "Jessica Foster"
+date: "2023-02-27"
 ---
 
 _This is the fourth in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document, and upload it to canvas. Don't forget to commit your changes as you go and push to github when you finish the worksheet._
@@ -109,21 +109,22 @@ ggplot(recreational.data, aes(x = population)) +
 
 (@) Use the Boston Women's voters dataset to create a histogram of the age of voters. 
 ```{r}
-BostonWomenVoters %>% subset(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
+data("BostonWomenVoters")
+BostonWomenVoters %>% filter(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
 ggplot() +
-  geom_histogram(mapping = aes(x=Age), color=4, fill="white")
+  geom_histogram(aes(x=Age), color=4, fill="white")
 ```
 
 (@) By default, `geom_histogram()` is choosing the number of bins. Can you change the number of bins or the bin width? (Hint: How might you look up the options for this function?)
 ```{r}
-BostonWomenVoters %>% subset(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
+BostonWomenVoters %>% filter(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
 ggplot() +
-  geom_histogram(mapping = aes(x=Age), color=4, fill="white", binwidth=10)
+  geom_histogram(aes(x=Age), color=4, fill="white", binwidth=10)
 ```
 
 (@) Explain, what does changing the number of bins do? 
 
-> I changed the binwidth instead of the number of bins. This increased the size of the age categories. Although the visualization is now less nuanced, it's easier to see the distribution of ages for the voters.
+> I changed the binwidth, which decreased the number of bins and increased the size of the age categories. Although the visualization is now less nuanced, it's easier to see the distribution of ages for the voters.
 
 ### Barplots 
 
@@ -137,6 +138,7 @@ ggplot(sc.rec, aes(x = state, y = state.expenditures )) +
 
 (@) Using the `gayguides` data, create a bar chart that shows the number of locations in 1980 in South Carolina, Georgia, and North Carolina. 
 ```{r}
+data("gayguides")
 gg.chart <- gayguides %>% 
   filter(Year == 1980) %>%
   filter(state == "SC" | state == "GA" | state == "NC") %>%
@@ -284,6 +286,7 @@ ggplot(lifeExp.graph) +
 
 (@) Plot 2
 ```{r}
+data("almshouse_admissions")
 # Load lubridate library to combine year & month columns
 library(lubridate)
 
@@ -333,6 +336,10 @@ ggplot(almshouse.graph) +
 (@) Plot 3. For this one, try a different kind of plot. [Check out a useful gallery here.](https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv)
 (For this week, avoid choosing a map. We'll talk more about maps and geographic data over the next two weeks.)
 ```{r}
+regions <- read.csv("https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/censusregions.csv")
+
+gayguides_regions <- left_join(gayguides, regions, by=c("state"="State.Code")) # Join two data frames
+
 library(treemap)
 
 gg.treemap <- gayguides_regions %>%
