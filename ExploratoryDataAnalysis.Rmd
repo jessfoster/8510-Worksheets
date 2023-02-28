@@ -18,15 +18,64 @@ library(DigitalMethodsData)
 
 ### Step 1: Formulation your question
 
+> Since I haven't used the charlestonManumissions dataset before, I will use it for this exercise. My question is: What were the most common motives for manumissions in the Charleston District?
+
 ### Step 2: Read in your data
+
+```{r}
+# Load dataset
+data("charlestonManumissions")
+```
 
 ### Step 3: Check the packaging
 
+```{r}
+# How many rows (i.e. observations) does the dataset have?
+nrow(charlestonManumissions)
+```
+> The answer matches the number of observations listed in Environment.
+
+```{r}
+# How many columns (i.e. variables) does the dataset have?
+ncol(charlestonManumissions)
+```
+> The answer matches the number of variables listed in Environment.
+
 ### Step 4: Run str()
+
+```{r}
+# Examine the classes of each of the columns to make sure they are correctly specified (i.e. numbers are numeric and strings are character, etc.). 
+str(charlestonManumissions)
+```
+> Name, Race, Owner, Motive, Notes variables are characters/strings, which makes sense. It would be nice if the Date variable was broken into separate columns for year, month, and date, each being an integer. That would make it easier to perform calculations. Right now Date is a character/string with a combination of numbers and letters. Page variable is also a character even though the first values look like integers. However, page numbers can contain letters.
 
 ### Step 5: Look at the top and the bottom of your data
 
+```{r}
+# Look at the first 10 rows of data
+head(charlestonManumissions, n=10L)
+```
+> This shows me that the Page variable is a character for a reason, because it is sometimes a range, e.g. 585-86. Looking at the Name column, I can see that each observation is a manumission event, which means there may be more than one person manumitted at the same time. It's unclear whether the names are always comma separated, e.g. row 5. There are some NA values, e.g. row 8 under Race.
+
+```{r}
+# Look at the last 10 rows of data
+tail(charlestonManumissions, n=10L)
+```
+> This shows more NA values under Race. Also I see that some entries under Motive have more than one value listed, separated by a semicolon. I may need to use grepl() to filter for particular Motives.
+
 ### Step 6: Check your "n"s
+
+```{r}
+# Check the Race variable for spelling variations and/or data entry errors
+table(charlestonManumissions$Race)
+```
+> I see that there are many different spellings for the historical term "Mestizo": Mustizo, Mustizoe, Mustee. There are some entries with multiple racial identifiers listed and many NA's. This could be due to the fact that these are manumission events involving multiple enslaved individuals.
+
+```{r}
+# Let's check the Motive variable see how it breaks down
+table(charlestonManumissions$Motive)
+```
+> Not all of the terms for Motive are clear. What does it mean to have a "Foreign" motive? "Restricted"? "Sexual"? Also this confirms that more than one motive is listed for some entries. This could be due to the fact that these are manumission events involving multiple enslaved individuals.
 
 ### Step 7: Validate with at least one external data source
 
