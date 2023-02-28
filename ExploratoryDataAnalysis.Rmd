@@ -1,0 +1,37 @@
+---
+title: "Exploratory Data Analysis"
+author: "Jessica Foster"
+date: "2023-02-27"
+output: html_document
+---
+
+_This document will follow Roger Peng's Exploratory Data Analysis Checklist to explore of the datasets in the History 8510 repository._
+
+## Exploratory Data Analysis Checklist
+
+Let's load all the libraries we'll use in this worksheet: 
+```{r message=FALSE, warning=FALSE}
+library(ggplot2) 
+library(tidyverse)
+library(DigitalMethodsData)
+```
+
+### Step 1: Formulation your question
+
+### Step 2: Read in your data
+
+### Step 3: Check the packaging
+
+### Step 4: Run str()
+
+### Step 5: Look at the top and the bottom of your data
+
+### Step 6: Check your "n"s
+
+### Step 7: Validate with at least one external data source
+
+### Step 8: Try the easy solution first
+
+### Step 9: Challenge your solution
+
+### Step 10: Follow up
