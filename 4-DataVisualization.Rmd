@@ -109,19 +109,21 @@ ggplot(recreational.data, aes(x = population)) +
 
 (@) Use the Boston Women's voters dataset to create a histogram of the age of voters. 
 ```{r}
-ggplot(BostonWomenVoters, aes(x = Age)) +
-  geom_histogram()
+BostonWomenVoters %>% subset(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
+ggplot() +
+  geom_histogram(mapping = aes(x=Age), color=4, fill="white")
 ```
 
 (@) By default, `geom_histogram()` is choosing the number of bins. Can you change the number of bins or the bin width? (Hint: How might you look up the options for this function?)
 ```{r}
-ggplot(BostonWomenVoters, aes(x = Age)) +
-  geom_histogram(bins = 20)
+BostonWomenVoters %>% subset(!is.na(Age)) %>% # Added to remove warning "Removed N rows containing non-finite values" which was preventing Knit
+ggplot() +
+  geom_histogram(mapping = aes(x=Age), color=4, fill="white", binwidth=10)
 ```
 
 (@) Explain, what does changing the number of bins do? 
 
-> The default number of bins for geom_histogram() is 30. I decreased the number of bins to 20, whihc increased the width of the bins. This means that the age categories, represented by the bins, are larger. The visualization is less nuanced.
+> I changed the binwidth instead of the number of bins. This increased the size of the age categories. Although the visualization is now less nuanced, it's easier to see the distribution of ages for the voters.
 
 ### Barplots 
 
