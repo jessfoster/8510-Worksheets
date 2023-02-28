@@ -5,7 +5,7 @@ date: "2023-02-27"
 output: html_document
 ---
 
-_This document will follow Roger Peng's Exploratory Data Analysis Checklist to explore of the datasets in the History 8510 repository._
+_This document will follow Roger Peng's Exploratory Data Analysis Checklist to explore the charlestonManumissions dataset from the History 8510 repository._
 
 ## Exploratory Data Analysis Checklist
 
@@ -18,7 +18,7 @@ library(DigitalMethodsData)
 
 ### Step 1: Formulation your question
 
-> Since I haven't used the charlestonManumissions dataset before, I will use it for this exercise. My question is: What were the most common motives for manumissions in the Charleston District?
+> What were the most common motives for manumissions in the Charleston District during this period?
 
 ### Step 2: Read in your data
 
@@ -69,7 +69,7 @@ tail(charlestonManumissions, n=10L)
 # Check the Race variable for spelling variations and/or data entry errors
 table(charlestonManumissions$Race)
 ```
-> I see that there are many different spellings for the historical term "Mestizo": Mustizo, Mustizoe, Mustee. There are some entries with multiple racial identifiers listed and many NA's. This could be due to the fact that these are manumission events involving multiple enslaved individuals.
+> I see that there are many different spellings for the historical term Mestizo: "Mustizo", "Mustizoe", "Mustee". There are some entries with multiple racial identifiers listed and many NA's. This could be due to the fact that these are manumission events involving multiple enslaved individuals.
 
 ```{r}
 # Let's check the Motive variable see how it breaks down
@@ -77,10 +77,71 @@ table(charlestonManumissions$Motive)
 ```
 > Not all of the terms for Motive are clear. What does it mean to have a "Foreign" motive? "Restricted"? "Sexual"? Also this confirms that more than one motive is listed for some entries. This could be due to the fact that these are manumission events involving multiple enslaved individuals.
 
+```{r}
+# To find out what some of these unclear Motives might mean, let's look at the Notes column
+manumission.motives <- charlestonManumissions %>%
+  select(Name, Owner, Motive, Notes...Quotes) %>%
+  filter(grepl('Sexual|Restricted|Foreign', Motive))
+```
+
+> Ok so the "Sexual" motive seems to indicate the manumission of the owner's children resulting from sexual unions with enslaved women. For example, Gabriel Powell manumitted a young boy named Jeffrey Powell who was the son of his "mulatto woman named Nancy". This implies Jeffrey is the offspring of the owner's sexual union with an enslaved woman. Powell's motive is also listed as "Moral" because he mentions his wishes for the future well being of the boy.
+
+> For "Foreign," it looks like that involves the manumission of enslaved individuals outside America. An example would be Thomas Lamley of Nassau in the Bahamas manumitting an enslaved woman named Phoebe, or Jerome Laval of Port-au-Prince (Haiti).
+
+> "Restricted" means the manumission has conditions. For example, the enslaved individual will be freed only when they reach a certaiin age. In my opinion, that's more a type of manumission rather than a motive. The same goes for "Outside Purchase", which is not really a motive but a description of how the enslaved individual was acquired.
+
 ### Step 7: Validate with at least one external data source
+
+> Skipping this step because not much numerical data in charlestonManumissions to validate
 
 ### Step 8: Try the easy solution first
 
+> Return to question: What were the most common motives for manumissions in the Charleston District during this period?
+
+```{r}
+# Let's go back to the dataset, group according to Motive, and summarize the results
+manumission.motives <- charlestonManumissions %>%
+  group_by(Motive) %>%
+  summarize(count = n())
+
+# We can do a quick visualization of this data with a barplot
+ggplot(manumission.motives, aes(x=Motive, y=count)) + 
+  geom_bar(stat = "identity") +
+  coord_flip() # Let's make it horizontal we can read the labels
+```
+> Since the bars are not in descending order, it's hard to see which Motives are the most common after "Moral". Time to make a new graph.
+
+```{r}
+library(forcats)
+
+manumission.motives %>%
+  mutate(Motive = fct_reorder(Motive, count)) %>% # Let's reorder the Motive groups from largest to smallest
+  ggplot( aes(x=Motive, y=count)) +
+    geom_bar(stat="identity") +
+    coord_flip() # Let's make it horizontal we can read the labels
+```
+> This graph shows that the five most common motives for manumission are:
+1. Moral
+2. Self-Purchase
+3. Moral; Sexual
+4. Outside Purchase
+5. Moral; Foreign
+
 ### Step 9: Challenge your solution
 
+> The problem with grouping by Motive is that each manumission event can have multiple Motives listed, so you can't always single out a particular one to say that it's the most common. This graph shows that "Moral" is the most common motive, but it's often combined with others. The same goes for "Self-Purchase", which is combined with many other motives. Thus, the barplot reflects the the most common Motive groupings, not the most common single Motives. That said, humans rarely act from a single motive, so the groupings are more reflective of "real life" and the data is still historically valuable. I think it would require more work with the dataset to tease out the frequency of the individual Motives.
+
+```{r}
+manumissions.motives %>%
+  mutate(Motive = ifelse(Motive == "", NA, Motive)) %>%
+  pivot_wider(names_from=Motive, values_from=count)
+```
+
+
 ### Step 10: Follow up
+
+1. Do you have the right data?
+
+2. Do you need other data?
+
+3. Do you have the right question?
