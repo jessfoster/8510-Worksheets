@@ -266,7 +266,6 @@ In the slots below use the datasets for class (or a dataset of your choice) to c
 
 (@) Plot 1
 ```{r}
-
 lifeExp.graph <- gapminder %>%
   select(country, continent, year, lifeExp) %>% # Select relevant columns
   group_by(year, continent) %>% # Group by continent and year
@@ -283,39 +282,51 @@ ggplot(lifeExp.graph) +
 
 (@) Plot 2
 ```{r}
+# Load lubridate library to combine year & month columns
+library(lubridate)
 
+# Create function to compare two date variables in dataframe
 Date.Check <- function(target.df, date.col1, date.col2) {
-   target.df %>% filter(date.col1 <= date.col2)
+  target.df %>% filter(date.col1 <= date.col2)
 }
-```
-```{r}
- almshouse.graph <- almshouse_admissions %>%
-   mutate(Date.Admitted = make_date(year = Year.Admitted, month = Month.Admitted)) %>% # Combine Year.Admitted and Month.Admitted columns, convert to YYYY-MM-DD format, display in Date.Admitted column
-   mutate(Date.Discharged = make_date(year = YearDischarged, month = MonthDischarged)) %>% # Combine YearDischarged and MonthDischarged columns, convert to YYYY-MM-DD format, display in Date.Discharged column
-   select(Last.Name, First.Name, Gender, Date.Admitted, Date.Discharged) %>% # Select relevant columns
-   na.omit() %>% # Remove all entries with NA
-   filter(Gender != 2) #%>% # Remove unknown gender
 
+# Create function to check if year variable has 4 digits
+Count.Digits <- function(target.df, year.col) {
+  target.df %>% filter(nchar(year.col) == 4)
+}
+
+almshouse.graph <- almshouse_admissions %>%
+  mutate(Gender = str_replace(Gender, "0", "Male")) %>% # Replace 0 with Male
+  mutate(Gender = str_replace(Gender, "1", "Female")) %>% # Replace 1 with Female
+  filter(Gender != 2) #%>% # Remove unknown gender (likely typo)
+
+# Check year columns to make sure they have 4 digits, filter out results that don't pass validation
+almshouse.graph <- Count.Digits(almshouse.graph, almshouse.graph$Year.Admitted)
+almshouse.graph <- Count.Digits(almshouse.graph, almshouse.graph$YearDischarged)
+
+# Continue operations on dataframe
+almshouse.graph <- almshouse.graph %>%
+  mutate(Date.Admitted = make_date(year = Year.Admitted, month = Month.Admitted)) %>% # Combine Year.Admitted and Month.Admitted columns, convert to YYYY-MM-DD format, display in Date.Admitted column
+  mutate(Date.Discharged = make_date(year = YearDischarged, month = MonthDischarged)) %>% # Combine YearDischarged and MonthDischarged columns, convert to YYYY-MM-DD format, display in Date.Discharged column
+  select(Last.Name, First.Name, Gender, Date.Admitted, Date.Discharged) # Select relevant columns
+  
 # Check dates to make sure Date.Admitted is earlier than or the same as Date.Discharged, filter out rows that don't pass validation
 almshouse.graph <- Date.Check(almshouse.graph, almshouse.graph$Date.Admitted, almshouse.graph$Date.Discharged)
 
 # Continue operations on dataframe
-almshouse.graph %>%
-  mutate(Length.of.Stay = interval(Date.Admitted, Date.Discharged) %/% months(1)) %>% # Calculate length of stay in almshouse in months
-  group_by(Gender) %>%
-  mutate(Gender = str_replace(Gender, "0", "Male")) %>%
-  mutate(Gender = str_replace(Gender, "1", "Female")) %>%
-  summarize(Average.Length.of.Stay = mean(Length.of.Stay))
+almshouse.graph <- almshouse.graph %>%
+   mutate(Length.of.Stay = interval(Date.Admitted, Date.Discharged) %/% months(1)) %>% # Calculate length of stay in almshouse in months
+   group_by(Gender) %>% # Group by gender
+   summarize(Average.Length.of.Stay = mean(Length.of.Stay)) # Calculate average length of stay
 
 ggplot(almshouse.graph) +
-   labs(y="Average Length of Stay") + # Tidy up y-axis label
-   geom_col(aes(x=Gender, y=Average.Length.of.Stay, fill=Gender))
-
+   geom_col(aes(x=Gender, y=Average.Length.of.Stay, fill=Gender)) +
+   labs(y="Avg. Length of Stay (Months)") # Tidy up axis labels
 ```
 
 (@) Plot 2 explanation: 
 
-> I wanted to find the average length of stay in the almshouse for men and women.
+> I wanted to find the average length of stay in the almshouse for men and women. This was more difficult than I anticipated. First I had to tidy the dataset by changing 0 and 1 to Male and Female, respectively, to make it easier to see the gender for each person. I also removed the row with 2 as the gender, since that is likely a typo, but I could have kept it and called it "Other." To calculate the length of stay in months for each person, I had to combine the Year.Admitted and Month.Admitted columns into a single column called Date.Admitted in YYYY-MM-DD format. Since there wasn't a day column, I just set it to the first day of the month. I did the same for the YearDischarged and MonthDischarged columns. Originally I removed all the rows with "NA" values resulting from the date combination, because some years were entered incorrectly as 1, for example. Then I decided to create a function to check that each year had 4 digits. I also created a function to check that Date.Admitted was earlier than or equal to Date.Discharged. This filtered out negative numbers in the Length.of.Stay column which had been causing problems for me when calculating the average length of stay. The final results were an average stay of approximately 6.5 months for women and 5.7 months for men (rounded). The bar plot illustrates that women tended to stay almost a month longer in the almshouse than men.
 
 (@) Plot 3. For this one, try a different kind of plot. [Check out a useful gallery here.](https://github.com/regan008/DigitalMethodsData/blob/main/raw/RecreationData-Wide.csv)
 (For this week, avoid choosing a map. We'll talk more about maps and geographic data over the next two weeks.)
@@ -325,14 +336,13 @@ library(treemap)
 gg.treemap <- gayguides_regions %>%
   select(Year, Region, Division) %>% # Select Year and Division columns
   filter(Year == 1985) %>% # Filter new data frame by Year 1985
-  na.omit() %>%
+  na.omit() %>% # Remove all NA's
   group_by(Region, Division) %>% # Group by Division
   summarize(count = n()) # Show number of locations in each region in 1985
 
 treemap(gg.treemap, index=c("Region", "Division"), vSize="count", type="index", title="Locations in 1985", )
-
 ```
 
 (@) Plot 3 explanation:
 
-> I decided to use a treemap this time.
+> I wanted to find out the total number of locations, broken down by region, in the last year of the gayguides dataset, 1985. I decided to use a treemap to visualize this subset (I know you said no maps, but a treemap is not a geographical map ;-) ). First I selected the Year and Division columns, filtered by the year 1985, and grouped by Division. Then I used a treemap to plot the total number of locations for each Region and Division. The Regions are the categories, each bordered by a thick black line, and the Divisions is the subcategories, each bordered by a thin black line. The size of the rectangle corresponds proportionately to the number of locations. The Pacific rectangle is the largest because it has the most locations in 1985.
