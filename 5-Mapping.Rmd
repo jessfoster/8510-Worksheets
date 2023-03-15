@@ -37,7 +37,7 @@ Now we have latitude and longitude coordinates for our data.
 
 (@) Use this approach to geocode the `UndergroundRR` data. 
 ```{r}
-data("UndergroundRR")
+data("UndergroundRR") #Make sure to use capital U
 ```
 
 
