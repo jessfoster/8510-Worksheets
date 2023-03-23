@@ -1,7 +1,7 @@
 ---
 title: "Worksheet 5: Mapping"
 author: "Jessica Foster"
-date: "2023-03-15"
+date: "2023-03-22"
 ---
 
 _This is the fifth in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document, and upload it to canvas. Don't forget to commit your changes as you go and push to github when you finish the worksheet._
@@ -16,6 +16,7 @@ library(tidyverse)
 library(DigitalMethodsData)
 library(ggmap)
 library(tidygeocoder)
+library(ggrepel)
 ```
 
 ### Geocoding
@@ -37,18 +38,47 @@ Now we have latitude and longitude coordinates for our data.
 
 (@) Use this approach to geocode the `UndergroundRR` data. 
 ```{r}
-data("UndergroundRR") #Make sure to use capital U
+data("UndergroundRR") # Make sure to use capital U for dataset file name
+# Before geocoding, we need to look at the data first to see what location variables it uses
+head(undergroundRR) # Use lowercase u for dataframe
+# We can see that there a city, county and state columns, though the city is not always listed
+UndergroundRR.coordinates <- undergroundRR %>% geocode(city = City, state = State, method='osm', lat = latitude, long = longitude) # This passes 177 addresses to be geocoded
+UndergroundRR.coordinates %>%
+  select(City, County, State, latitude, longitude)
 ```
 
+```{r}
+# Let's try adding the county parameter
+UndergroundRR.county.coordinates <- undergroundRR %>% geocode(city = City, county = County, state = State, method='osm', lat = latitude, long = longitude) # This passes 214 addresses to be geocoded
+UndergroundRR.county.coordinates %>%
+  select(City, County, State, latitude, longitude)
+```
+
+> When I added the county parameter, I got different results. While there were more addresses total to be geocoded (214 vs. 177), some locations previously geocoded with city & state were no longer geocoded with county. For example, Loudon County, VA is spelled incorrectly: it should be Loudoun. Marshall Hope, MD is still not geocoded because it doesn't seem to exist as a city anymore, regardless of the county. Also, Portsmouth, VA became an independent city in 1858 and is no longer part of Norfolk County, so it doesn't get geocoded either. On the other hand, the unnamed place in Howard County, MD is now geocoded because of the county parameter.
 
 (@) Geocode the Boston Women Voters dataset. Note that the data does include street addresses but because they are broken into parts - street address number, street, etc - you'll need to combine them into a full address to pass to the geocoding function. 
 ```{r}
 data("BostonWomenVoters")
+
+# I have chosen to geocode the voters' home addresses
+
+# Combine street address variables into full address
+BostonWomenVoters <- BostonWomenVoters %>%
+  # If Present.Residence is "Same" or blank, concatenate Street.Number.on.April.1 and Street.of.Residence.on.April.1 variables into new column Street.Address; otherwise copy value of Present.Residence into Street.Address
+  mutate(Street.Address = if_else(grepl("Same|^$", Present.Residence, ignore.case=TRUE), paste(Street.Number.on.April.1, Street.of.Residence.on.April.1, sep = " "), Present.Residence)) %>%
+  mutate(State = "Massachusetts") # Assume all street addresses are in Massachusetts (some are not and will be excluded by geocoder, but this covers most)
+
+# Geocoding 1000 rows (895 valid addresses) of dataset because doing all of them takes too long
+BostonWomenVoters.coordinates <- BostonWomenVoters %>% slice(1:1000) %>%
+ geocode(street = Street.Address, state = State, method='osm', lat = latitude, long = longitude)
+
+BostonWomenVoters.coordinates %>%
+  select(Name, Street.Address, State, latitude, longitude)
 ```
 
-(@) As mentioned above - there are many ways to make a map in R. The `ggmap()` package has a function called `qmplot()` which allows for the quick plotting of maps with data. Look up the documentation for this package and use it to create a plot of the recreational data that we gecode above.
+(@) As mentioned above - there are many ways to make a map in R. The `ggmap()` package has a function called `qmplot()` which allows for the quick plotting of maps with data. Look up the documentation for this package and use it to create a plot of the recreational data that we geocoded above.
 ```{r}
-
+qmplot(longitude, latitude, data = rec.data.coordinates)
 ```
 
 ### Maps with `ggplot()`
@@ -59,50 +89,113 @@ First we need to get a basemap. For this example we'll use the `map_data()` func
 
 (@) Look at the documentation for `map_data()`. Which geographies does this package provide access to?
 
->
+> map_data() provides access to maps of US counties, US states, US mainland with coasts, the countries of France, Italy, and New Zealand, and two versions of the world: maps::world() is a low (mid) resolution map imported from the public domain Natural Earth project; maps::world2() is based on latitudes [0, 360) with the Pacific Ocean in the center of the map.
 
 Lets load the base map data for the US. 
 ```{r}
-usa <- map_data("state")
+usa <- map_data("state") # maps::state()
 ```
 
 (@) `map_data()` generates a data frame. Take a look at this data frame, what types of data are included? 
 
-> 
-
+> It includes the longitude and latitude of locations in the lower 48 states. The states are listed in the region column. There is a subregion column which has values for some states, such as michigan. Each subregion (or region if no subregion) is assigned a group number. For example, alabama is group 1, arizona is group 2, michigan - south is group 24 and north carolina - spit is group 40. The locations also have a numerical order, perhaps the order of plotting.
 
 We can now pass this data to ggplot to create a simple basemap. When we wanted to create a bar plot using `ggplot()` we called `geom_bar`. When we wanted to create a line chart we used `geom_point()` and `geom_line()`. The sample principle applies here and `ggplot()` provides a geom for maps.
 ```{r}
+# Create reusable code to remove all axes & borders from graph
+ditch_the_axis <- theme(
+  axis.text = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.title = element_blank()
+)
+# Credit to https://rstudio-pubs-static.s3.amazonaws.com/285359_35d630ddbc554c62b9137c13f063ee0e.html
+
 ggplot() + 
-  geom_map( data = usa, map = usa, aes(long, lat, map_id=region))
+  geom_map( data = usa, map = usa, aes(long, lat, map_id=region)) + 
+  ditch_the_axis
 ```
 
 Now we have a basemap! But what if we want to layer data onto it. Lets add all of the locations in `gayguides` from 1965. First we need to set up our data: 
 ```{r}
 data(gayguides)
-gayguides <- gayguides %>% filter(Year == 1965)
+gayguides.1965 <- gayguides %>% 
+  filter(Year == 1965)
 ```
 
 And then we can use the same mapping code from above but this time we're going to add an additional geom -- `geom_point()` which will point to each of our locations from 1965. 
 ```{r}
-ggplot() + 
+ggplot() +
   geom_map( data = usa, map = usa, aes(long, lat, map_id=region)) +
-  geom_point(data = gayguides, mapping = aes(x=lon, y=lat))
+  geom_point(data = gayguides.1965, mapping = aes(x=lon, y=lat)) +
+  ditch_the_axis
 ```
 
 (@) This map looks slightly funny, but that is because the data includes entries outside of the contiguous United States. Try filtering out those entries and mapping this again. Can you change the color or size of the points? Can you add a title?
 ```{r}
+gayguides.1965 <- gayguides.1965 %>%
+  filter(state != "AK" & state != "HI") # Exclude Alaska & Hawaii
 
+ggplot() + 
+  geom_map( data = usa, map = usa, aes(long, lat, map_id=region)) +
+  geom_point(data = gayguides.1965, mapping = aes(x=lon, y=lat, color=type)) +
+  ditch_the_axis +
+  labs(title = "Locations in 1965")
 ```
 
 (@) Can you map just locations in South Carolina (on a basemap of SC)? 
 ```{r}
+# Create dfs for SC and SC counties
+state <- map_data("state")
+south.carolina <- subset(state, region=="south carolina")
+counties <- map_data("county")
+sc.counties <- subset(counties, region=="south carolina")
 
+# Filter gayguides.1965 for locations in SC
+gayguides.SC <- gayguides.1965 %>%
+  filter(state == "SC")
+
+# Create basemap of SC with county borders
+sc.base <- ggplot(data=south.carolina, mapping=aes(x=long, y=lat, group=group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(color="black", fill="gray") + 
+  geom_polygon(data=sc.counties, fill=NA, color="white") + 
+  geom_polygon(color="black", fill=NA) + 
+  ditch_the_axis
+
+# Plot 1965 gayguides locations on SC county basemap
+sc.map <- sc.base +
+  geom_point(data = gayguides.SC, mapping = aes(x=lon, y=lat, color=type, group=city)) +
+  geom_text_repel(data = gayguides.SC, mapping = aes(x=lon, y=lat, group=city, label=title)) +
+  labs(title = "SC Locations in 1965")
+
+sc.map
 ```
 
 (@) Create a map that uses your geocoded data from the Boston Women Voters dataset. 
 ```{r}
+# Create dfs for MA and MA counties
+state <- map_data("state")
+massachusetts <- subset(state, region=="massachusetts")
+counties <- map_data("county")
+ma.counties <- subset(counties, region=="massachusetts")
 
+# Create basemap of MA with county borders
+ma.base <- ggplot(data=massachusetts, mapping=aes(x=long, y=lat, group=group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(color="black", fill="gray") + 
+  geom_polygon(data=ma.counties, fill=NA, color="white") + 
+  geom_polygon(color="black", fill=NA) + 
+  ditch_the_axis
+
+# Plot BostonWomenVoters.coordinates locations on MA county basemap
+ma.map <- ma.base +
+   geom_point(data = BostonWomenVoters.coordinates, mapping = aes(x=longitude, y=latitude, color=Country.of.Birth, group=Street.Address, alpha=0.5)) +
+   labs(title = "Current Residence of Boston Women Voters by Country of Birth - Sample")
+ 
+ma.map
 ```
 
 Lets return to the recreational data for a minute.
@@ -157,32 +250,38 @@ nhgis <- nhgis %>% filter(STATENAM != "Alaska Territory" & STATENAM != "Hawaii T
 #plot 
 ggplot(data = nhgis, aes(fill = AZF001)) + #Native born males
   geom_sf() 
-
 ```
 (@) In the code above, why filter out Hawaii and Alaska? Try uncommenting that line and rerunning the code. What happens? Why might we want to do this? Why might we not want to do this? How does it shape the interpretation?
->
 
-This is a great start. But using AZF001 (Native born males) as the fill does not create a useful visualization. It doesn't give us a sense of the proportion of that data. What would be much better, is if we knew what percentage of the total population foreign born males represented. To get that we have to calculate it. The next few questions will walk build on the code above and walk you through doing this.
+> When you don't filter out Hawaii and Alaska, the map changes significantly. Instead of showing only mainland US, it shows Hawaii and Alaska off to the right. However, now it's more difficult to interpret the map because the US is so small. You can barely see the county borders. The dark blue colors don't help. Visually, it's better to just show the mainland US. On the other hand, if you don't include Hawaii and Alaska, you're not using all the data and so your conclusions could be misleading if you're not transparent about your methods. It depends on what kind of argument you want to make. Ideally, it would be great if you could include the data for Hawaii and Alaska but map them separately from the mainland.
+
+This is a great start. But using AZF001 (Native born males) as the fill does not create a useful visualization. It doesn't give us a sense of the proportion of that data. What would be much better, is if we knew what percentage of the total population foreign born males represented. To get that we have to calculate it. The next few questions will build on the code above and walk you through doing this.
 
 (@) First, create a variable called total_male_pop, with the total foreign and native born male population by summing the variables AZF001 and AZF003. 
 ```{r}
-
+nhgis <- nhgis %>%
+  rowwise() %>% # Tell dplyr to apply future changes to each row rather than across all rows
+  mutate(total_male_pop = sum(c(AZF001, AZF003))) # Sum variables
 ```
 
-(@) Now, use the total_male_pop variable and create a variable for the the percentage of foreign born males.
+(@) Now, use the total_male_pop variable and create a variable for the percentage of foreign born males.
 ```{r}
-
+nhgis <- nhgis %>%
+  rowwise() %>% # Tell dplyr to apply future changes to each row rather than across all rows
+  mutate(percentage_foreign_born_male = round((AZF003/total_male_pop)*100, digits=2)) # Calculate percentage of foreign born males and round to 2 decimal places
 ```
 
 (@) Now map your result. You'll want to replicate the code from the example above, but this time add another layer to the plot - a scale. Here we'll use this scale `scale_fill_continuous("", labels = scales::percent)`
 
 Before you write that code, look up the documentation for the above code (and look at the examples). What does it do? 
 
->
+> scale_fill_continuous() is the default color scale ggplot2 uses when continuous data values are mapped onto fill aesthetics. Continuous data is something that can be expressed in real numbers (e.g. time, temperature, lengths, etc.), in other words, in a range. In this case, we have a percentage variable which goes from 0 to 60%. The colors can be mapped in a gradient rather than separate colors.
 
 Now create the map: 
 ```{r}
-
+ggplot(data = nhgis, aes(fill = AZF001)) + #Native born males
+  geom_sf() +
+  scale_fill_continuous("", labels = scales::percent)
 ```
 
 ### Leaflet
@@ -212,13 +311,22 @@ leaflet(data=rec.data.coordinates) %>% addTiles() %>% addMarkers(~longitude, ~la
 
 (@) Use leaflet to map a dataset of your choice: 
 ```{r}
+UndergroundRR.county.coordinates <- UndergroundRR.county.coordinates %>%
+  filter(State != "MC" & City != "Viana") %>% # Filter outliers due to typos
+  filter(!is.na(Year)) # Filter out rows without years
 
+leaflet(data=UndergroundRR.county.coordinates) %>% 
+  addTiles() %>% 
+  addMarkers(~longitude, ~latitude, popup = paste(UndergroundRR.county.coordinates$First.Middle.Name, " escaped from slavery in ", UndergroundRR.county.coordinates$City, ", ", UndergroundRR.county.coordinates$State,  " in ", UndergroundRR.county.coordinates$Year, sep=""))
 ```
 
 (@) Explain what choices you made in building this map? Why might you use leaflet over ggplot? When would ggplot be more desirable? 
 
->
+> I decided to use the UndergroundRR.county.coordinates dataset that I created earlier. This dataset has more accurate geocoding than UndergroundRR.coordinates because of the addition of the county variable. If I use UndergroundRR.coordinates, locations such as Georgetown, DE will be mapped incorrectly as outside the US. However, with UndergroundRR.county.coordinates I still had to filter out a couple of outliers. One has the state abbreviation "MC" (likely a mispelling of "MD"), and the other has the city "Viana" but no state or county--both were mapped to Spain. I also filtered out rows that did not include the year. Unfortunately, the dataset is still incomplete: not all rows have city or state names. Moreover, 323 rows were excluded during mapping because they had missing or invalid lat/lon values.
 
+> Leaflet works well for this dataset because I can add more meaning to the mapped points through the popups. I decided to make a popup that says, for example, "Sarah escaped slavery in Louisville, KY in 1850". This humanizes the data so the viewer can easily see that the point on the map represents an an enslaved individual who emancipated themselves at a certain place and time. Popups are also better than ggplot labels because they don't appear unless clicked. Even with ggrepel, labels can clutter your map in ggplot.
+
+> ggplot is useful when you have a lot of data and you don't need to explain each data point. For the UndergroundRR dataset, you could use ggplot to show the geographic distribution of self-emancipation events. This allows you to see patterns at a glance. ggplot is also easier to use if you need to create more kinds of visualizations besides maps.
 
 ### Exercises
 For the next portion of this worksheet I'd like you to look back at the email about the National Parks Data. Using this data (link below) you should use ggplot (charts, maps) and other mapping tools to come up with several ways to visualize it based on the points outlined in Dr. Barczewski's email. You should try to think about this from the perspective of her larger book project, how could you visualize this data to help her make a compelling argument? 
@@ -226,3 +334,575 @@ For the next portion of this worksheet I'd like you to look back at the email ab
 ```{r}
 parks <- read.csv("https://raw.githubusercontent.com/regan008/DigitalMethodsData/main/raw/parks-geocoded.csv")
 ```
+
+Dr. Barczewski wants to show how British parks differ from and are similar to parks in other places. She wants to compare (1) Britain vs. continental Europe; (2) Britain vs. USA; and (3) Britain vs Canada, New Zealand and South Africa in terms of age, size, and distance from urban areas.
+
+## All Regions
+Let's add a new column for the region so that we can group countries together.
+```{r}
+# Create a list of continental European countries, excluding United Kingdom
+continental.europe <- c("Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "Vatican City")
+
+# Create a new column called region and assign values based on whether the country matches a value in the continental.europe list or is United States, Canada, New Zealand, or South Africa
+parks.regions <- parks %>%
+  mutate(region = case_when(country %in% continental.europe ~ "Europe",
+                           country == "United States" ~ "United States",
+                           country == "United Kingdom" ~ "United Kingdom",
+                           country == "Canada" ~ "Canada",
+                           country == "New Zealand" ~ "New Zealand",
+                           country == "South Africa" ~ "South Africa"))
+```
+
+### Age Distribution
+Now let's add a column for the age in years of each park.
+```{r}
+parks.regions <- parks.regions %>%
+  drop_na() %>% # Drop NA values
+  mutate(age = 2023 - year) # Calculate age in years of each park
+```
+
+We can now display the distribution of ages of the parks in each region using a boxplot. Since we'll be creating more boxplots down the road, I'm going to make a function of reusable code to save space.
+```{r}
+library(hrbrthemes)
+library(viridis)
+
+# Wrap the text of x-axis labels
+wrap_x_labels <- scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+
+# Create reusable code for boxplots
+box_plot <- function(data, x, y, fill) {
+  require(hrbrthemes)
+  require(viridis)
+  ggplot(data, aes({{x}}, {{y}}, fill={{fill}})) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    geom_jitter(color="black", size=0.4, alpha=0.9) + # Show individual distribution of each group
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(hjust=0.5, size=11),
+      axis.title.y = element_text(vjust=0.5)
+    ) +
+    wrap_x_labels
+}
+```
+
+Now let's use our new function to make a boxplot showing the distribution of ages for each region.
+```{r}
+# Create boxplot showing age of national parks by region
+box_plot(parks.regions, region, age, region) +
+    ggtitle("Ages of National Parks by Region") +
+    labs(x= "", y = "Age in Years")
+```
+### Average Age
+Now let's find the average age of the parks in each region and display the results using a barplot.
+```{r}
+parks.average.age <- parks.regions %>%
+  group_by(region) %>% # Group by region
+  summarize(average.age = mean(age)) %>% # Calculate average age of parks in each region
+  mutate(region = fct_reorder(region, average.age)) # Reorder the regions from smallest to largest in terms of average age
+
+parks.average.age %>%
+  ggplot(aes(x=region, y=average.age, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 70), breaks = seq(0, 70, 10)) +
+  ggtitle("Average Age of National Parks by Region") +
+  labs(x="", y="Average Age in Years")
+```
+This barplot shows that New Zealand has the oldest national parks on average (~68 years), followed closely by the United States (~66.6 years). Then comes Canada (~58.5 years), the UK (~53.9 years), South Africa (~45.5 years), and Europe (~35.7 years).
+
+### Size Over Time
+```{r}
+parks.regions %>%
+  group_by(region, year, total_sq_kilometers) %>%
+  ggplot(aes(x=year, y=total_sq_kilometers, color=region, size=total_sq_kilometers)) +
+  geom_point(alpha=0.7) +
+  ggtitle("Size of National Parks by Year") +
+  labs(x="Year", y="Size in Square Kilometers")
+```
+This bubble plot shows the size of national parks in the various regions over time. The size of the bubble corresponds to the size in square kilometers: the bigger the bubble, the larger the park.
+
+### Average Size
+Let's calculate the average size of national parks for all regions.
+```{r}
+# We first need to tidy the data because the total_sq_kilometers column has numbers with commas
+# parks.regions <- parks.regions %>%
+#   mutate(total_sq_kilometers = parse_number(total_sq_kilometers)) # Convert non-numeric values to numeric
+
+# Now we can perform operations on total_sq_kilometers
+parks.average.size <- parks.regions %>%
+  group_by(region) %>% # Group by region
+  summarize(average.size = mean(total_sq_kilometers)) # Calculate average size of parks in each region
+```
+
+We can show the average size of all regions using a barplot.
+```{r}
+parks.average.size %>%
+  mutate(region = fct_reorder(region, average.size)) %>% # Reorder the regions from smallest to largest in terms of average size
+  ggplot(aes(x=region, y=average.size, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks by Region") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+Unsurprisingly, Canada is clearly in the lead in terms of the average size of its national parks. While we would need an additional dataset to confirm, we can assume that this is because Canada has a much larger amount of available land to convert into national parks. This same argument could be made for the United States.
+
+### Park Creation History
+Now let's compare the history of national park creation in each region.
+```{r}
+parks.regions %>%
+  group_by(region, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~region) +
+  ggtitle("National Park Creation History by Region") +
+  labs(x="Year", y="Number of Parks Created")
+```
+
+### Distance from Urban Areas
+```{r}
+parks.average.distance <- parks.regions %>%
+  group_by(region) %>% # Group by region
+  summarize(average.distance = mean(distance_from_closest_city)) # Calculate average distance from closest city of parks in each region
+
+parks.average.distance %>%
+  mutate(region = fct_reorder(region, average.distance)) %>% # Reorder the regions from smallest to largest in terms of average distance from cities
+  ggplot(aes(x=region, y=average.distance, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Urban Areas") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+## Continental Europe vs. UK
+Let's subset the data to show only Europe and the United Kingdom.
+```{r}
+parks.europe.uk <- parks.regions %>%
+  filter(region == "Europe" | region == "United Kingdom") 
+```
+
+### Age Distribution
+```{r}
+box_plot(parks.europe.uk, region, age, region) +
+    ggtitle("Ages of National Parks in Continental Europe and the UK") +
+    labs(x= "", y = "Age in Years") +
+    scale_y_continuous(limits = c(0, 120), breaks = seq(0, 120, 10))
+```
+The above boxplot shows that the median age of European national parks is about 30 years, while that of the UK is close to 70 years. However, the UK has a much smaller sample size. Also, Europe has a fairly bimodal distribution compared to the UK. The distribution of the dots suggests that few national parks have been created in the UK within the last 30 years, while there has been a fairly steady creation of national parks in Europe over the last 75 years.
+
+### Average Age
+```{r}
+parks.europe.uk.average.age <- parks.average.age %>%
+  filter(region == "Europe" | region == "United Kingdom") 
+
+parks.europe.uk.average.age %>%
+  ggplot(aes(x=region, y=average.age, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 60), breaks = seq(0, 60, 10)) +
+  ggtitle("Average Age of National Parks in Continental Europe and the UK") +
+  labs(x="", y="Average Age in Years")
+```
+This barplot confirms that national parks in the UK are older on average than those in Europe by about 18 years.
+
+### Size Over Time
+```{r}
+parks.europe.uk %>%
+  group_by(region, year, total_sq_kilometers) %>%
+  ggplot(aes(x=year, y=total_sq_kilometers, color=region, size=total_sq_kilometers)) +
+  geom_point(alpha=0.7) +
+  ggtitle("Size of National Parks by Year") +
+  labs(x="Year", y="Size in Square Kilometers")
+```
+This bubble plot shows the size of national parks in Europe and the UK over time. The red bubbles represent parks in Europe and the blue ones represent parks in the UK. The size of the bubble corresponds to the size in square kilometers: the bigger the bubble, the larger the park. The graph shows that Europe's largest national parks were created between around 1975 and 2010. It also shows that there are no British parks created before 1950 in this dataset.
+
+### Average Size
+Dr. Barczewski hypothesizes that British parks will be larger than European ones.
+```{r}
+parks.europe.uk.average.size <- parks.average.size %>%
+  filter(region == "Europe" | region == "United Kingdom")
+
+parks.europe.uk.average.size %>%
+  ggplot(aes(x=region, y=average.size, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks by Region") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+This graph shows that the average size of national parks in the UK is around 3x larger than that of parks in Europe (~1530 sq.km. for UK vs. ~482 sq.km. for Europe), which confirms Dr. Barczewski's hypothesis.
+
+### Park Creation History
+Dr. Barczewski hypothesizes that there have not been as many British parks as European created in recent decades.
+```{r}
+parks.europe.uk %>%
+  group_by(region, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~region) +
+  ggtitle("National Park Creation History in Continental Europe and the UK") +
+  labs(x="Year", y="Number of Parks")
+```
+The above graph confirms that there has been little park creation activity in the UK in recent years. Park creation in Europe has dropped off as well in the past decade, but there were spikes in the years before and after 2000.
+
+### Distance from Urban Areas
+Finally, let's look at the distance to urban areas of European and British parks.
+```{r}
+parks.europe.uk.average.distance <- parks.average.distance %>%
+  filter(region == "Europe" | region == "United Kingdom")
+
+parks.europe.uk.average.distance %>%
+  ggplot(aes(x=region, y=average.distance, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Closest City") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+This plot confirms Dr. Barczewski's hypothesis that national parks in the UK are closer to urban areas than parks in Europe.
+
+## France & Germany vs. UK
+Let's subset the data to compare Britain to Western Europe, represented by France and Germany.
+```{r}
+parks.fr.de.uk <- parks.regions %>%
+  filter(country == "United Kingdom" | country == "France" | country == "Germany")
+```
+
+### Age Distribution
+We can use a boxplot again to show the distribution of ages.
+```{r}
+box_plot(parks.fr.de.uk, country, age, country) +
+    ggtitle("Ages of National Parks in France, Germany, and the UK") +
+    labs(x= "", y = "Age in Years") +
+    scale_y_continuous(limits = c(0, 80), breaks = seq(0, 80, 10))
+```
+
+### Average Age
+Now let's display the average age of parks in France, Germany, and the UK.
+```{r}
+parks.fr.de.uk.average.age <- parks.regions %>%
+  filter(country == "United Kingdom" | country == "France" | country == "Germany") %>%
+  group_by(country) %>% # Group by country
+  summarize(average.age = mean(age)) %>%
+  mutate(country = fct_reorder(country, average.age)) # Reorder the countries from smallest to largest in terms of average age
+
+parks.fr.de.uk.average.age %>%
+  ggplot(aes(x=country, y=average.age, fill=country)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 60), breaks = seq(0, 60, 10)) +
+  ggtitle("Average Age of National Parks in Germany, France, and the UK") +
+  labs(x="", y="Average Age in Years")
+```
+We can see here that among the three countries, the UK has the oldest national parks on average, followed by France and then Germany. It would be interesting to explore possible reasons for these differences, particularly between France and Germany. Did WWII and the subsequent division of Germany have any effect on this?
+
+### Size Over Time
+```{r}
+parks.regions %>%
+  filter(country == "United Kingdom" | country == "France" | country == "Germany") %>%
+  group_by(country, year, total_sq_kilometers) %>%
+  ggplot(aes(x=year, y=total_sq_kilometers, color=country, size=total_sq_kilometers)) +
+  geom_point(alpha=0.7) +
+  ggtitle("Size of National Parks by Year") +
+  labs(x="Year", y="Size in Square Kilometers")
+```
+
+### Average Size
+```{r}
+parks.fr.de.uk.average.size <- parks.fr.de.uk %>%
+  group_by(country) %>% # Group by country
+  summarize(average.size = mean(total_sq_kilometers)) %>% # Calculate average size of parks in each country
+  mutate(country = fct_reorder(country, average.size)) # Reorder the countries from smallest to largest in terms of average size
+
+parks.fr.de.uk.average.size %>%
+  ggplot(aes(x=country, y=average.size, fill=country)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks in France, Germany, and the UK") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+This barplot shows that national parks in the UK are larger on average than those in France and Germany.
+
+### Park Creation History
+We can use line graphs to compare the park creation activity of the three countries over time.
+```{r}
+parks.regions %>%
+  filter(country == "United Kingdom" | country == "France" | country == "Germany") %>%
+  group_by(country, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~country) +
+  ggtitle("National Parks Created by Country") +
+  labs(x="Year", y="Number of Parks")
+```
+These graphs show, for instance, that the UK created several national parks before 1960 but activity has become static since then. On the other hand, Germany experienced in a spike in activity around 1990, which could be due to factors such as reunification and/or greater interest in the environment at that time.
+
+### Distance from Urban Areas
+```{r}
+parks.fr.de.uk.average.distance <- parks.regions %>%
+  filter(country == "United Kingdom" | country == "France" | country == "Germany") %>%
+  group_by(country) %>% # Group by country
+  summarize(average.distance = mean(distance_from_closest_city)) %>% # Calculate average distance from closest city of parks in each country
+  mutate(country = fct_reorder(country, average.distance)) # Reorder the countries from smallest to largest in terms of average distance from cities
+
+parks.fr.de.uk.average.distance %>%
+  ggplot(aes(x=country, y=average.distance, fill=country)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Closest City") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+This shows that British national parks are closer to urban areas than those in Germany or France.
+
+## USA vs. UK
+Let's subset the data to show only the United States and the UK.
+```{r}
+parks.us.uk <- parks.regions %>%
+  filter(region == "United States" | region == "United Kingdom") 
+```
+
+### Age Distribution
+```{r}
+box_plot(parks.us.uk, region, age, region) +
+    ggtitle("Ages of National Parks in the USA and the UK") +
+    labs(x= "", y = "Age in Years") +
+    scale_y_continuous(limits = c(0, 120), breaks = seq(0, 120, 10))
+```
+
+### Average Age
+Dr. Barczewski hypothesizes that national parks in the USA are older than those in the UK, which is confirmed by the barplot below.
+```{r}
+parks.us.uk.average.age <- parks.average.age %>%
+  filter(region == "United States" | region == "United Kingdom") 
+
+parks.us.uk.average.age %>%
+  ggplot(aes(x=region, y=average.age, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 70), breaks = seq(0, 70, 10)) +
+  ggtitle("Average Age of National Parks in the US and the UK") +
+  labs(x="", y="Average Age in Years")
+```
+### Average Size
+
+```{r}
+parks.us.uk.average.size <- parks.us.uk %>%
+  group_by(region) %>% # Group by region
+  summarize(average.size = mean(total_sq_kilometers)) # Calculate average size of parks in each region
+  
+parks.us.uk.average.size %>%
+  ggplot(aes(x=region, y=average.size, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks in the US and the UK") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+This barplot confirms Dr. Barczewski's hypothesis that American parks are larger than those in the UK.
+
+### Park Creation History
+```{r}
+parks.us.uk %>%
+  group_by(region, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~region) +
+  ggtitle("National Park Creation History in the US and the UK") +
+  labs(x="Year", y="Number of Parks")
+```
+
+
+### Distance from Urban Areas
+```{r}
+parks.us.uk.average.distance <- parks.average.distance %>%
+  filter(region == "United States" | region == "United Kingdom")
+
+parks.us.uk.average.distance %>%
+  ggplot(aes(x=region, y=average.distance, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Closest City") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+This barplot confirms that national parks in the US are much further from urban areas than those in the UK.
+
+## North America vs. UK
+Dr. Barczewski also wants to compare Canada, New Zealand, and South Africa to the UK. I don't think that grouping the three together as the former empire would be meaningful since it's just a small sample of the empire. However, I think that the USA and Canada could be grouped as North America and compared to the UK.
+
+To compare the UK to Canada and the USA collectively, we first need to filter the dataset for these three countries and then combine Canada and the USA into a single category called North America.
+```{r}
+parks.na.uk <- parks.regions %>%
+  filter(region == "United States" | region == "Canada" | region == "United Kingdom") 
+
+# Create a new column called region2
+parks.na.uk <- parks.na.uk %>%
+  mutate(region2 = case_when(region == "United States" ~ "North America",
+                           region == "Canada" ~ "North America",
+                           region == "United Kingdom" ~ "United Kingdom"
+                          ))
+```
+
+### Age Distribution
+```{r}
+box_plot(parks.na.uk, region2, age, region2) +
+    ggtitle("Ages of National Parks in North America and the UK") +
+    labs(x= "", y = "Age in Years") +
+    scale_y_continuous(limits = c(0, 120), breaks = seq(0, 120, 10))
+```
+
+### Average Age
+```{r}
+parks.na.uk.average.age <- parks.na.uk %>%
+  group_by(region2) %>% # Group by region
+  summarize(average.age = mean(age)) # Calculate average age of parks in each region
+
+parks.na.uk.average.age %>%
+  ggplot(aes(x=region2, y=average.age, fill=region2)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 70), breaks = seq(0, 70, 10)) +
+  ggtitle("Average Age of National Parks in North America and the UK") +
+  labs(x="", y="Average Age in Years")
+```
+The above barplot shows that the national parks in North America (Canada & the US) are older on average than those in the UK.
+
+### Average Size
+```{r}
+parks.na.uk.average.size <- parks.na.uk %>%
+  group_by(region2) %>% # Group by region
+  summarize(average.size = mean(total_sq_kilometers)) # Calculate average size of parks in each region
+  
+parks.na.uk.average.size %>%
+  ggplot(aes(x=region2, y=average.size, fill=region2)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks in North America and the UK") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+This barplot shows that national parks in North America (Canada & the US) are much larger on average than those in the UK.
+
+### Park Creation History
+```{r}
+parks.na.uk %>%
+  group_by(region2, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~region2) +
+  ggtitle("National Park Creation History in North America and the UK") +
+  labs(x="Year", y="Number of Parks")
+```
+
+### Distance from Urban Areas
+```{r}
+parks.na.uk.average.distance <- parks.na.uk %>%
+  group_by(region2) %>% # Group by region
+  summarize(average.distance = mean(distance_from_closest_city)) # Calculate average distance from closest city of parks in each region
+  
+parks.na.uk.average.distance %>%
+  ggplot(aes(x=region2, y=average.distance, fill=region2)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Closest City") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+This barplot shows that national parks in the UK are much closer to urban areas than those in North America.
+
+## New Zealand & South Africa vs. UK
+Let's subset the data to show only New Zealand, South Africa, and the UK.
+```{r}
+parks.nz.sa.uk <- parks.regions %>%
+  filter(region == "New Zealand" | region == "South Africa" | region == "United Kingdom") 
+```
+
+### Age Distribution
+Now we can use a boxplot to visualize the age distribution of national parks by region.
+```{r}
+box_plot(parks.nz.sa.uk, region, age, region) +
+    ggtitle("Ages of National Parks in New Zealand, South Africa, and the UK") +
+    labs(x= "", y = "Age in Years") +
+    scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 10))
+```
+### Average Age
+```{r}
+parks.nz.sa.uk.average.age <- parks.average.age %>%
+  filter(region == "New Zealand" | region == "South Africa" | region == "United Kingdom") %>%
+  mutate(region = fct_reorder(region, average.age)) # Reorder the regions from smallest to largest in terms of average age
+  
+parks.nz.sa.uk.average.age %>%
+  ggplot(aes(x=region, y=average.age, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(0, 70), breaks = seq(0, 70, 10)) +
+  ggtitle("Average Age of National Parks in New Zealand, South Africa, and the UK") +
+  labs(x="", y="Average Age in Years")
+```
+This barplot shows that national parks in New Zealand are older on average than those in the UK and South Africa.
+
+### Size Over Time
+```{r}
+parks.nz.sa.uk %>%
+  group_by(region, year, total_sq_kilometers) %>%
+  ggplot(aes(x=year, y=total_sq_kilometers, color=region, size=total_sq_kilometers)) +
+  geom_point(alpha=0.7) +
+  ggtitle("Size of National Parks by Year") +
+  labs(x="Year", y="Size in Square Kilometers")
+```
+### Average Size
+```{r}
+parks.nz.sa.uk.average.size <- parks.nz.sa.uk %>%
+  group_by(region) %>% # Group by region
+  summarize(average.size = mean(total_sq_kilometers)) %>% # Calculate average size of parks in each region
+  mutate(region = fct_reorder(region, average.size)) # Reorder the regions from smallest to largest in terms of average size
+
+parks.nz.sa.uk.average.size %>%
+  ggplot(aes(x=region, y=average.size, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Size of National Parks in New Zealand, South Africa, and the UK") +
+  labs(x="", y="Average Size in Square Kilometers")
+```
+This barplot shows that national parks in New Zealand are larger on average than those in South Africa and the UK.
+
+### Park Creation History
+```{r}
+parks.nz.sa.uk %>%
+  group_by(region, year) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = year, y = count)) +
+  geom_line() + facet_wrap(~region) +
+  ggtitle("National Park Creation History in New Zealand, South Africa, and the UK") +
+  labs(x="Year", y="Number of Parks")
+```
+
+
+### Distance from Urban Areas
+```{r}
+parks.nz.sa.uk.average.distance <- parks.average.distance %>%
+  filter(region == "New Zealand" | region == "South Africa" | region == "United Kingdom") %>%
+  mutate(region = fct_reorder(region, average.distance)) # Reorder the regions from smallest to largest in terms of average distance from urban areas
+
+parks.nz.sa.uk.average.distance %>%
+  ggplot(aes(x=region, y=average.distance, fill=region)) +
+  geom_col() +
+  theme(legend.position = "none") +
+  ggtitle("Average Distance of National Parks from Closest City") +
+  labs(x="", y="Average Distance in Kilometers")
+```
+This barplot shows that national parks in the UK are much closer to urban areas than South Africa and New Zealand.
+
+## Summary
+
+### All Regions
+National parks in New Zealand and the United States are the oldest on average. National parks in Canada are by far the largest and furthest from urban areas. New Zealand, South Africa, and the United States are close in terms of average size of national parks.
+
+### Continental Europe vs. UK
+National parks in the UK are, on average, older, larger, and closer to urban areas than those in Europe. Few national parks have been created in the UK within the last 30 years, while there has been a fairly steady creation of national parks in Europe over the last 75 years.
+
+### France & Germany vs. UK
+National parks in the UK are, on average, older, larger, and closer to urban areas than those in France and Germany. National parks in Germany are newer, slightly smaller, and closer to urban areas than those in France.
+
+### USA vs. UK
+National parks in the US are, on average, older, much larger, and much further from urban areas than those in the UK.
+
+### North America vs. UK
+National Parks in North America are, on average, older, much larger, and much further from urban areas than those in the UK.
+
+### New Zealand & South Africa vs. UK
+National parks in New Zealand are, on average, older, larger, and further from urban areas than those in the UK and South Africa. National parks in the UK are older than those in South Africa, but parks in South Africa are larger than those in the UK. National parks in South Africa are slightly closer to urban areas than those in New Zealand, but much further than those in the UK.
