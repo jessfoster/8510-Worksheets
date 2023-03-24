@@ -268,7 +268,7 @@ nhgis <- nhgis %>%
 ```{r}
 nhgis <- nhgis %>%
   rowwise() %>% # Tell dplyr to apply future changes to each row rather than across all rows
-  mutate(percentage_foreign_born_male = round((AZF003/total_male_pop)*100, digits=2)) # Calculate percentage of foreign born males and round to 2 decimal places
+  mutate(percentage_foreign_born_male = round((AZF003/total_male_pop), digits=2)) # Calculate percentage of foreign born males and round to 2 decimal places, but don't multiply by zero
 ```
 
 (@) Now map your result. You'll want to replicate the code from the example above, but this time add another layer to the plot - a scale. Here we'll use this scale `scale_fill_continuous("", labels = scales::percent)`
@@ -279,9 +279,9 @@ Before you write that code, look up the documentation for the above code (and lo
 
 Now create the map: 
 ```{r}
-ggplot(data = nhgis, aes(fill = AZF001)) + #Native born males
+ggplot(data = nhgis, aes(fill = percentage_foreign_born_male)) + 
   geom_sf() +
-  scale_fill_continuous("", labels = scales::percent)
+  scale_fill_continuous("", labels = scales::percent) # This calculates percentage for map
 ```
 
 ### Leaflet
