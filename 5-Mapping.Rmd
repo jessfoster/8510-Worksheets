@@ -1,7 +1,7 @@
 ---
 title: "Worksheet 5: Mapping"
 author: "Jessica Foster"
-date: "2023-03-22"
+date: "2023-03-27"
 ---
 
 _This is the fifth in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document, and upload it to canvas. Don't forget to commit your changes as you go and push to github when you finish the worksheet._
@@ -414,6 +414,11 @@ This barplot shows that New Zealand has the oldest national parks on average (~6
 
 ### Size Over Time
 ```{r}
+# We first need to tidy the data because the total_sq_kilometers column has numbers with commas
+parks.regions <- parks.regions %>%
+   mutate(total_sq_kilometers = parse_number(total_sq_kilometers)) # Convert non-numeric values to numeric
+
+# Now we can perform operations on total_sq_kilometers
 parks.regions %>%
   group_by(region, year, total_sq_kilometers) %>%
   ggplot(aes(x=year, y=total_sq_kilometers, color=region, size=total_sq_kilometers)) +
@@ -426,11 +431,6 @@ This bubble plot shows the size of national parks in the various regions over ti
 ### Average Size
 Let's calculate the average size of national parks for all regions.
 ```{r}
-# We first need to tidy the data because the total_sq_kilometers column has numbers with commas
-# parks.regions <- parks.regions %>%
-#   mutate(total_sq_kilometers = parse_number(total_sq_kilometers)) # Convert non-numeric values to numeric
-
-# Now we can perform operations on total_sq_kilometers
 parks.average.size <- parks.regions %>%
   group_by(region) %>% # Group by region
   summarize(average.size = mean(total_sq_kilometers)) # Calculate average size of parks in each region
