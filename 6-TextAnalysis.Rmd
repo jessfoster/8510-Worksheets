@@ -192,10 +192,14 @@ tidy_sotu <- sotu_whole %>%
   unnest_tokens(word, text) %>% 
   anti_join(stop_words)
 ```
-(@) Before we move forward, take a minute a describe the chunk of code you just ran. What does each section do and how does it reflect the workflow for a topic modeling project? What are the important steps that are unique to topic modeling? 
+(@) Before we move forward, take a minute a describe the chunk of code you just ran. What does each section do and how does it reflect the workflow for a text analysis project? What are the important steps that are unique to text analysis? 
 
->
+> First you have to build a corpus. In a typical text analysis project you have to organize the metadata and load the text files yourself but in this case there is an R package already prepared called `sotu`. The `sotu` package includes metadata about each State of the Union address in `sotu_meta`. In the first line of code we are converting `sotu_meta` into a dataframe called `meta`. In the next line, we use the `sotu_dir()` function to create a new directory called `sotu_files` which adds each State of the Union address as its own .txt file. Next we use the `readtext()` function to load the texts into a dataframe called `sotu_texts`. It has two columns, one for the text, and one for the document ID. Now we need to combine the two data frames. Ideally when you're building your corpus you should create a metadata spreadsheet with a column for the file name which makes it easier to join the textual data and metadata, but in this case we have to sort the dataset alphabetically by president before joining the two dataframes into `sotu_whole`. 
 
+> After preparing the corpus, the next step is pre-processing. One of the most basic pre-processing techniques is tokenization, which splits a phrase, sentence, paragraph, or an entire text document into smaller units, called tokens. We can tokenize the `sotu_whole` dataframe using the function `unnest_tokens()`
+Here we're creating a dataframe called `tidy_sotu` which has a new column called "word" that contains the tokens. Each row contains a single word with its metadata as the unit of observation. 
+
+> Another pre-processing technique is removing stopwords like "I, he, she, of, the" that are common and don't convey meaning about the content of the text itself. The `tidytext` package comes with a list of `stop_words`. There are other lists available and you can also edit the list to add custom words. In this case we just want to remove the default stopwords. We can use the function `anti_join()` to join and return all rows from `tidy_sotu` where there are no matching values in our list of stopwords.
 
 The most basic kind of analysis we might be interested in doing is counting words. We can do that easily using the `count()` function: 
 ```{r}
@@ -210,7 +214,7 @@ tidy_sotu %>%
   count(year, word)
 ```
 
-This data frame is to big to understand quickly without visualizing it. We can create a bar chart to better understand it: 
+This data frame is too big to understand quickly without visualizing it. We can create a bar chart to better understand it: 
 ```{r}
 library(ggplot2)
 
@@ -218,24 +222,26 @@ tidy_sotu %>%
   filter(word %in% c("war", "peace")) %>% 
   count(year, word) %>% 
   ggplot(aes(year, n, fill = word)) +
-    geom_col(position = "fill")
+    geom_col(position = "fill") # Percent stacked barplot: the percentage of each subgroup is represented, allowing to study the evolution of their proportion in the whole
 
 ```
 
-We also might want to ask about the average length of each president's state of the union address. Who had the longest speech and who had the shortest?
+We also might want to ask about the average length of each president's State of the Union address. Who had the longest speech and who had the shortest?
 ```{r}
 tidy_sotu %>%
   count(president, doc_id)  %>% 
   group_by(president) %>% 
   summarize(avg_words = mean(n)) %>% 
   arrange(desc(avg_words))
+
+# William Howard Taft had the longest speech, while John Adams had the shortest
 ```
 
-(@) Think back to the metadata that we loaded about these speeches. Why are more modern president's state of the union addresses shorter? 
+(@) Think back to the metadata that we loaded about these speeches. Why are more modern presidents' State of the Union addresses shorter? 
 
->
+> I'm not sure if this is the reason, but the shortest speeches seem to be given by presidents before the two-party system developed.
 
-(@) Filter the dataset to address this discrepancy and the recreate these statistics: 
+(@) Filter the dataset to address this discrepancy and then recreate these statistics: 
 ```{r}
 
 ```
