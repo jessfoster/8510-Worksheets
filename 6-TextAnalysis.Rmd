@@ -229,7 +229,7 @@ tidy_sotu %>%
 We also might want to ask about the average length of each president's State of the Union address. Who had the longest speech and who had the shortest?
 ```{r}
 tidy_sotu %>%
-  count(president, doc_id)  %>% 
+  count(president, doc_id) %>% 
   group_by(president) %>% 
   summarize(avg_words = mean(n)) %>% 
   arrange(desc(avg_words))
@@ -239,12 +239,29 @@ tidy_sotu %>%
 
 (@) Think back to the metadata that we loaded about these speeches. Why are more modern presidents' State of the Union addresses shorter? 
 
-> I'm not sure if this is the reason, but the shortest speeches seem to be given by presidents before the two-party system developed.
+> The data shows that the earliest presidents actually had the shortest speeches: John Adams, George Washington, Thomas Jefferson, and James Madison. However, there doesn't seem to be a clear correlation between being a modern president and giving a longer speech either, as you can see that several modern presidents gave short speeches too. I did some internet research and found that presidents usually submitted a written report to Congress until 1913 when Woodrow Wilson started giving the State of the Union in person. This fact still doesn't quite explain the numbers. I think you would need to group the presidents based on some criteria to find out whether a particular "type" of president gave longer or shorter speeches.
+
+> Since I didn't find a clear pattern, I decided to edit the code to include `sotu_type`, that is, whether the State of the Union is categorized as "written" or "speech". See below.
 
 (@) Filter the dataset to address this discrepancy and then recreate these statistics: 
 ```{r}
-
+tidy_sotu %>%
+  count(president, sotu_type, doc_id)  %>% # Add sotu_type to see if correlation between speech/written and length
+  group_by(president, sotu_type) %>% # Show sotu_type in summary
+  summarize(avg_words = mean(n)) %>% 
+  arrange(desc(avg_words))
 ```
+> In my opinion, this gives more meaningful results because it's including some metadata, in this case type of speech, that might explain the results. This dataframe shows that the longest speeches are indeed written (the first 20 rows are all "written"). To me, this makes more sense than just saying that modern presidents give longer speeches because first you would need to define "modern", which is a highly contested term. Also, the data simply doesn't bear out the "modern" claim because the longest speeches were given by presidents across time periods. Based on the above results, one could argue that written speeches *tend* to be longer, regardless of the president or time period, but you would need to investigate further to explain why that is. You would also need to find out how the metadata category `sotu_type` was assigned, since "written" is not necessarily the opposite of "speech". For example, even if Ronald Reagan didn't just read aloud his State of the Union address, I would be surprised if he or his speech writer hadn't written it down beforehand. Likewise, I think Washington and Adams probably wrote down their speeches before delivering them, even though they're the shortest.
+
+Just out of curiosity, I want to see which political party of presidents gave the longest speeches:
+```{r}
+tidy_sotu %>%
+  count(president, party, doc_id)  %>% # Add party to see if correlation between party affiliation and length
+  group_by(party) %>% # Group by political party
+  summarize(avg_words = mean(n)) %>% 
+  arrange(desc(avg_words))
+```
+> It turns out that Republicans have given the longest speeches on average, but Democrats and Whigs are a close second and third, respectively. 
 
 ### Term Frequency
 Often, the raw frequency of a term is not as useful as relative frequency. In other words, how often that word appears relative to the total number of words in a text. This ratio is called **term frequency**. 
