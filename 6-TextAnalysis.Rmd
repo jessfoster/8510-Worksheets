@@ -271,7 +271,7 @@ You can calculate the term frequency by dividing the total occurrences of a word
 Here's an easy way to calculate it: 
 ```{r}
 tidy_sotu_rel.freq <- tidy_sotu %>%
-  count(doc_id, word, sort = T)  %>%# count occurrence of word and sort descending
+  count(doc_id, word, sort = T)  %>% # count occurrence of word and sort descending
   group_by(doc_id) %>% 
   mutate(n_tot = sum(n), # count total number of words per doc
          term_freq = n/n_tot)
@@ -283,16 +283,16 @@ tidy_sotu %>%
   count(president, word)  %>%  # count n for each word
   group_by(president) %>% 
   mutate(n_tot = sum(n), # count total number of words per doc
-         term_freq = n/n_tot) %>% 
+          term_freq = n/n_tot) %>% 
   arrange(desc(term_freq)) %>% # sort by term frequency
   top_n(1) %>%  # take the top for each president
   print(n = Inf) # print all rows
 ```
-(@) The code above is commented to help you follow it. Walk through the code above, and explain what each line does in your own words. If its a function you are unfamiliar with, look up the documentation.
+(@) The code above is commented to help you follow it. Walk through the code above, and explain what each line does in your own words. If it's a function you are unfamiliar with, look up the documentation.
 
-> 
+> The first line uses the `count()` function to count how many times each president uses each unique word in their speeches. The second line groups this data by president. The third line uses `mutate()` to calculate the relative frequency of each unique word by dividing the total occurrences of the word by the total number of words in each document. To do this, `mutate()` creates two new columns: one called `n_tot` which contains the total number of words in each document, and the other called `term_freq` which contains the relative frequency of each word. The next line uses `arrange()` to sort the data by the values in the `term_freq` column, highest to lowest. The next line uses `top_n()` to select the top row for each president, that is, the most frequent word that each president uses. The final line prints all the rows selected in the previous line.
 
-### TF-IDF
+### TF-IDF (Term Frequency-Inverse Document Frequency)
 
 The above measures the frequency of terms within individual documents. But what if we know about words that seem more important based on the contents of the **entire** corpus? That is where tf-idf or term-frequency according to inverse document frequency comes in. 
 
@@ -302,19 +302,19 @@ Don't worry too much about how tf-idf is calculated. But if you feel like you ar
 
 We'll calculate tf-idf in the next code chunk but lets talk for a second about what that number will represent. It will be: 
 
-    * lower for words that appear frequently in many documents of the corpus, and lowest              when the word occurs in virtually all documents.
-    * higher for words that appear frequently in just a few documents of the corpus,                  this lending high discriminatory power to those few documents.
+    * lower for words that appear frequently in many documents of the corpus, and lowest when the word occurs in virtually all documents.
+    * higher for words that appear frequently in just a few documents of the corpus, this lending high discriminatory power to those few documents.
 
 Luckily, `tidytext` provides a function for calculating tf-idf. To calculate tf-idf the function needs a list of every word in every document and the count. Like this: 
 ```{r}
 tidy_sotu %>%
-  count(doc_id, word, sort = TRUE)  
+  count(doc_id, word, sort = TRUE) # Count how many times each word appears in each document
 ```
 We can feed that to the function and get the tf-idf: 
 ```{r}
 sotu.tf.idf <- tidy_sotu %>%
-  count(doc_id, word, sort = TRUE)  %>%  
-  bind_tf_idf(word, doc_id, n) 
+  count(doc_id, word, sort = TRUE) %>% # Count how many times each word appears in each document
+  bind_tf_idf(word, doc_id, n) # Calculate term frequency based on inverse document frequency
 
 head(sotu.tf.idf)
 ```
@@ -329,8 +329,34 @@ sotu.tf.idf %>% arrange(desc(tf_idf))
 (@) Pick a president who served more than one term. Filter the dataset and generate both raw word counts and tf-idf scores for that president. What words are most significant in each method? Why and what does that tell you about that president? 
 
 ```{r}
-
+tidy_sotu %>%
+  filter(president == "George W. Bush") %>%
+  count(doc_id, word, sort = TRUE) # count n for each word
 ```
+> I chose President George W. Bush. When generating a raw word count, the words "america", "people", "security", "weapons", and "world" have the highest totals.
+
+```{r}
+tidy_sotu %>%
+  filter(president == "George W. Bush") %>%
+  count(doc_id, word, sort = TRUE) %>% # count n for each word  
+  group_by(doc_id) %>% 
+  mutate(n_tot = sum(n), # count total number of words per doc
+          term_freq = n/n_tot) %>% 
+  arrange(desc(term_freq)) # sort by term frequency
+```
+
+> The same set of words, with the addition of "budget", have the highest term frequencies relative to the total number of words in each speech.
+
+```{r}
+tidy_sotu %>%
+  filter(president == "George W. Bush") %>%
+  count(doc_id, word, sort = TRUE) %>% # count n for each word
+  bind_tf_idf(word, doc_id, n) %>% # Calculate term frequency based on inverse document frequency
+  arrange(desc(tf_idf))
+```
+> Interestingly, while words such as "america", "security", "people", "world", and "weapons" had both the highest raw word counts and highest term frequencies, they did not have high tf_idf values. This makes sense because words that appear frequently in many documents of the corpus will have lower tf_idf values. The words "empower", "hussein", "saddam", and "inspectors" have the highest tf_idf values, meaning they appear frequently in just a few documents of the corpus. "empower" appears in Bush's 2008 speech, while "hussein", "saddam" and "inspectors" appear in his 2003 speech. The latter makes sense because 2003 was when Bush ordered the invasion of Iraq to depose Saddam Hussein, who was said to have weapons of mass destruction (which UN inspectors had been sent to find).
+
+> In summary, President George W. Bush frequently used the words "america", "security", "people", "world", and "weapons" through his speeches, but talked about Saddam Hussein in his 2003 speech more often than in all the other speeches. This reflects his political platform of nationalism, patriotism, and American intervention in the world, while also showing the significance of Saddam Hussein as America's enemy in 2003.
 
 ### Co-Occurance
 Co-occurrence gives us a sense of words that appear in the same text, but not necessarily next to each other. It shows words that are likely to co-occur. Note that this is different than topic modeling, which we'll discuss next week. 
