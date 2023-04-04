@@ -354,7 +354,7 @@ tidy_sotu %>%
   bind_tf_idf(word, doc_id, n) %>% # Calculate term frequency based on inverse document frequency
   arrange(desc(tf_idf))
 ```
-> Interestingly, while words such as "america", "security", "people", "world", and "weapons" had both the highest raw word counts and highest term frequencies, they did not have high tf_idf values. This makes sense because words that appear frequently in many documents of the corpus will have lower tf_idf values. The words "empower", "hussein", "saddam", and "inspectors" have the highest tf_idf values, meaning they appear frequently in just a few documents of the corpus. "empower" appears in Bush's 2008 speech, while "hussein", "saddam" and "inspectors" appear in his 2003 speech. The latter makes sense because 2003 was when Bush ordered the invasion of Iraq to depose Saddam Hussein, who was said to have weapons of mass destruction (which UN inspectors had been sent to find).
+> Interestingly, while words such as "america", "security", "people", "world", and "weapons" had both the highest raw word counts and highest term frequencies, they did not have high `tf_idf` values. This makes sense because words that appear frequently in many documents of the corpus will have lower `tf_idf` values. The words "empower", "hussein", "saddam", and "inspectors" have the highest tf_idf values, meaning they appear frequently in just a few documents of the corpus. "empower" appears in Bush's 2008 speech, while "hussein", "saddam" and "inspectors" appear in his 2003 speech. The latter makes sense because 2003 was when Bush ordered the invasion of Iraq to depose Saddam Hussein, who was said to have weapons of mass destruction (which UN inspectors had been sent to find).
 
 > In summary, President George W. Bush frequently used the words "america", "security", "people", "world", and "weapons" through his speeches, but talked about Saddam Hussein in his 2003 speech more often than in all the other speeches. This reflects his political platform of nationalism, patriotism, and American intervention in the world, while also showing the significance of Saddam Hussein as America's enemy in 2003.
 
@@ -390,7 +390,15 @@ sotu_word_pairs %>%
 ```
 (@) Create a network graph that shows the relationship between words that appear between 125 and 175 times.
 ```{r}
-
+sotu_word_pairs %>% 
+  filter(n >= 125 & n <= 175) %>%  # only word pairs that occur between 125 and 175 times
+  graph_from_data_frame() %>% # convert to graph
+  ggraph(layout = "fr") + # place nodes according to the force-directed algorithm of Fruchterman and Reingold
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "lightblue") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
 ```
 
 ## Analyzing Historical Journals
@@ -408,3 +416,172 @@ metadata <- read.csv("https://raw.githubusercontent.com/regan008/8510-TextAnalys
 
 (@) Add code chunks below and intersperse text to explain what you are doing and why. 
 
+> First we need to combine the metadata and texts of the Mind & Body issues into a single dataframe. We can do this by creating a character vector called `file_paths2` that contains the names of all the text files in the txt folder. Then we use the `readtext()` function to create a dataframe with two columns, one for the `doc_id` and one for the text. Since the values in `doc_id` all have the prefex `MB_`, which the values in the `Filename` column in `metadata` don't, I'm going to use `mutate()` and `gsub()` to get rid of it. Now that the `doc_id` column and `Filename` column have the exact same values, we can use `full_join` to join the two dataframs together into a single one called `mind.body`.
+
+```{r}
+file_paths2 <- list.files("txt/")
+mind.body.texts <- readtext(paste("txt/", file_paths2, sep="")) %>%
+  mutate(doc_id = gsub("MB_", "", doc_id))
+ 
+mind.body <- full_join(metadata, mind.body.texts, by = c("Filename" = "doc_id")) %>%
+  as_tibble() # convert to tibble for better screen viewing
+```
+
+> Now that we have all the data in a single dataframe, we can perform some pre-processing techniques to prepare it for analysis. First let's tokenize the dataframe by splitting the raw text into smaller units called tokens. We can use the function `unnest_tokens()` from the `tidytext` package to put each word on a separate row. It also cleans the text by converting all upper case letters to lower case and removing all special characters and punctuation. We can then filter out any rows containing numbers since these won't provide much insight.
+
+```{r}
+tidy.mind.body <- mind.body %>%
+  unnest_tokens(word, text) %>% # Split text into words
+  filter(!grepl('[0-9]', word)) # Remove numbers
+
+tidy.mind.body
+```
+> Next we should remove "stop words" which are common or frequently used words that don't convey meaning about the content of the text. The `tidytext` package includes a default list of 1,149 stop words. We can remove them using the `anti_join()` function.
+
+```{r}
+tidy.mind.body <- tidy.mind.body %>%
+  anti_join(stop_words)
+
+tidy.mind.body
+```
+> It looks like there are still a few stop words that are common in this dataset that we need to add to our list. For example, "vol" is likely referring to the volume, "march" to the month, and "editorial" and "committee" to the editorial committee of the journal. Let's do a word count to see which are the most common.
+
+```{r}
+tidy.mind.body %>%
+  count(word, sort = TRUE)
+```
+
+> Right away we see the word "digitized", which needs to be removed as it's related to the digitization of the texts, not their content. Others include "physical", "left", "dr" (unclear whether abbreviation for doctor or drive), "ooqle" (likely a misspelling of google), "google", "st" (abbreviation for street or Saint), "ft" (abbreviation for feet), "ii" (Roman numeral), "cjooqle" (misspelling of google), "pa" (possibly abbreviation for Pennsylvania), "wm" (abbreviation for William), "louis" (part of St. Louis), "wis", "iii", "june", "july", and stecher" (last name).
+
+> Let's create a custom list of stop words, combine them with the default list, and remove them from the dataframe.
+
+```{r}
+stop_words_mb <- tibble(
+  word = c(
+    "vol",
+    "march",
+    "physical",
+    "left",
+    "digitized",
+    "dr",
+    "ooqle",
+    "google",
+    "st",
+    "ft",
+    "ii",
+    "cjooqle",
+    "pa",
+    "wm",
+    "louis",
+    "wis",
+    "iii",
+    "june",
+    "july",
+    "stecher",
+    "ave"
+  ),
+  lexicon = "Mind Body"
+)
+
+all_stop_words <- stop_words %>%
+  bind_rows(stop_words_mb)
+
+tidy.mind.body <- tidy.mind.body %>%
+  anti_join(all_stop_words)
+```
+
+> Let's look at the most common words again.
+
+```{r}
+tidy.mind.body %>%
+  count(word, sort = TRUE)
+```
+
+> This list doesn't tell us too much. It would be more meaningful if we looked at how many times each word appears in each issue of Mind and Body. We can do this by adding the filename which contains the month and year.
+
+```{r}
+tidy.mind.body %>%
+  count(Filename, word, sort = TRUE)
+```
+
+> This still doesn't tell us a whole lot. There are some common placenames like "chicago" and "cleveland", while "health", "education", and "school" occur many times, unsurprisingly. It's time to start asking more specific questions of the data. For example, we could look at gender.
+
+```{r}
+
+gender.words <- c("boys", "girls", "boy", "girl", "men", "women", "man", "woman")
+  
+tidy.mind.body %>%
+  filter(word %in% gender.words) %>% 
+  count(word, sort = TRUE)
+```
+
+> This shows us that the word "boys" appears most frequently in the corpus, with "girls" a fairly close second. We can also see that the singular, "boy", is used much more frequently than "girl". What factors influenced this? We could look at the month and/or year of the issue to see if the journal targeted males or females at certain times of the year or if there was a change over time.
+
+```{r}
+tidy.mind.body %>%
+  count(Month, word, sort = TRUE) %>%
+  group_by(Month) %>% 
+  mutate(n_tot = sum(n), # count total number of words per issue
+         term_freq = n/n_tot) %>%
+  arrange(desc(term_freq)) %>% # sort by term frequency
+  filter(word %in% gender.words) %>%
+  top_n(1) %>%  # take the top for each month
+  print(n = Inf) # print all rows
+```
+> There doesn't seem to be a clear patternn here. The word "boys" is more frequent in January, February, March, May, May-June, June, July, August, September, and October, while "girls" is more frequent in
+April, Sept-Oct, November, December, and Dec-Jan.
+
+> It might help to look at which words often appear with "girls" or "boys" in the texts.
+
+```{r}
+mind.body.word.pairs <- mind.body %>%
+  mutate(doc_end = word(text, -5000, end = -1)) %>%  # Extract last 100 words
+  unnest_tokens(word, doc_end) %>%   # Tokenize
+  filter(!grepl('[0-9]', word)) %>% # Remove numbers
+  filter(!word %in% all_stop_words$word) %>%  # Remove default & custom stopwords
+  pairwise_count(word, Filename, sort = TRUE, upper = FALSE)
+
+mind.body.word.pairs %>%
+  filter(grepl("girls|boys", item1) | grepl("girls|boys", item2)) # Show only word pairs containing "girls" or "boys"
+
+```
+> We can create a network graph to display the relationships between "girls" or "boys" and other words for any words that appear more than 250 times.
+
+```{r}
+mind.body.word.pairs %>%
+  filter(grepl("girls|boys", item1) | grepl("girls|boys", item2)) %>%
+  filter(n >= 250) %>%  # only word pairs that occur 250 or more times
+  graph_from_data_frame() %>% #convert to graph
+  ggraph(layout = "fr") + # place nodes according to the force-directed algorithm of Fruchterman and Reingold
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "tomato") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
+
+> I haven't really drawn any historical conclusions from my analysis of gender in the data above, other than the fact that the word "boys" appears more frequently than "girls" in the corpus, suggesting a tendency towards more "masculine" themes. But that's still a tentative conclusion without knowing more about the journal. I think it would be helpful to have more metadata about the journal issues besides the year and month. Using that information, I found that "girls" appears more frequently than "boys" in the winter issues (November, December, and January), as well as in April, but I'm not sure if that is significant.
+
+> I think I'll try a different angle and look at the most frequently mentioned sports.
+
+```{r}
+sports <- c("football", "basketball", "baseball", "swimming", "tennis", "rugby", "handball", "fencing", "golf", "hockey", "boxing", "polo", "wrestling", "cycling", "rowing", "skating")
+
+tidy.mind.body %>% 
+  filter(word %in% sports) %>% 
+  count(word, sort = TRUE)
+```
+> This shows that swimming is the most commonly mentioned sport, followed by football, baseball, and tennis. We can use a line graph to see the change in frequency of a sports term over time, which might indicate changes in popularity.
+
+```{r}
+mind.body.sports <- tidy.mind.body %>%
+  filter(word == "swimming" | word == "football" | word == "baseball" | word == "tennis") # Filter for most common sports
+
+mind.body.sports %>%
+  count(Year, word, sort = TRUE) %>%
+  ggplot(aes(x = Year, y = n, color = word)) +
+    geom_line() +
+    labs(x="Year", y="Word Count") +
+    guides(color = guide_legend(title = "Sport"))
+```
+> This graph shows that the word "swimming" appeared most frequently in the years between 1910 and 1920 (around 1903 to 1912), while "football" peaked around 1903-1905 before declining until after 1920. "Baseball" and "tennis" both followed a similar pattern. The usage of these sports terms could reflect the importance of the sports to the journal as well as the popularity of the sports among the journal's readership or in the United States generally.
