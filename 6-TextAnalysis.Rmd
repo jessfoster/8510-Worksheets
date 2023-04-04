@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 6: Text Analysis'
 author: 'Jessica Foster'
-date: '2023-03-30'
+date: '2023-04-04'
 ---
 
 _This is the sixth in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document, and upload it to canvas. Don't forget to commit your changes as you go and push to github when you finish the worksheet._
@@ -528,7 +528,7 @@ tidy.mind.body %>%
   top_n(1) %>%  # take the top for each month
   print(n = Inf) # print all rows
 ```
-> There doesn't seem to be a clear patternn here. The word "boys" is more frequent in January, February, March, May, May-June, June, July, August, September, and October, while "girls" is more frequent in
+> There doesn't seem to be a clear pattern here. The word "boys" is more frequent in January, February, March, May, May-June, June, July, August, September, and October, while "girls" is more frequent in
 April, Sept-Oct, November, December, and Dec-Jan.
 
 > It might help to look at which words often appear with "girls" or "boys" in the texts.
