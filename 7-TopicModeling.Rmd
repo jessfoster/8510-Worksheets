@@ -143,7 +143,70 @@ unzip("MB.zip")
 
 # Metadata that includes info about each issue.
 metadata <- read.csv("https://raw.githubusercontent.com/regan008/8510-TextAnalysisData/main/mb-metadata.csv")
+
+mb_meta <- as.data.frame(metadata)
+mb_meta$Filename <- paste("MB_", mb_meta$Filename, sep="")
+file_paths2 <- list.files("txt/")
+mb_texts <- readtext(paste("txt/", file_paths2, sep=""))
+mb_whole <- full_join(mb_meta, mb_texts, by = c("Filename" = "doc_id")) %>% as_tibble()
+
+tidy_mb <- mb_whole %>%
+  unnest_tokens(word, text) %>% 
+  filter(str_detect(word, "[a-z']$")) %>% 
+  anti_join(stop_words)
 ```
+
+```{r}
+# Create document with the doc_id and the word and count number of times that word occurs
+tidy_mb_words <- tidy_mb %>% 
+  count(Filename, word)
+
+# Use cast_dtm() to turn document into DTM
+mb.dtm <- tidy_mb_words %>% 
+  count(Filename, word) %>% 
+  cast_dtm(Filename, word, n)
+```
+
+```{r}
+# Create Latent Dirichlet allocation (LDA) topic model with 25 topics
+mb.lda <- LDA(mb.dtm, k = 25, control = list(seed = 12345))
+mb.lda
+```
+
+```{r}
+# Create word-topic probability matrix
+mb.topics <- tidy(mb.lda, matrix = "beta")
+mb.topics
+```
+
+```{r}
+# Select top 5 terms in each topic
+mb.top.terms <- mb.topics %>%
+  group_by(topic) %>%
+  top_n(5, beta)
+
+# Display top 5 terms in each topic in a bar chart
+mb.top.terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+```
+```{r warning=FALSE}
+# Create wordcloud of Topic 4
+topic4 <- ac.topics %>% 
+  filter(topic == 4)
+
+wordcloud(topic4$term, topic4$beta, max.words = 100, random.order = FALSE,
+    rot.per = 0.3, colors = brewer.pal(6, "Dark2"))
+```
+```{r}
+# Create document-topic probability matrix
+mb.documents <- tidy(mb.lda, matrix = "gamma")
+mb.documents
+```
+
 
 (@) What happens if you create a custom stopword list? How does this change the model?
 ```{r}
