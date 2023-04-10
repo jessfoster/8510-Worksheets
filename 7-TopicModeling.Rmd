@@ -153,6 +153,7 @@ mb_whole <- full_join(mb_meta, mb_texts, by = c("Filename" = "doc_id")) %>% as_t
 tidy_mb <- mb_whole %>%
   unnest_tokens(word, text) %>% 
   filter(str_detect(word, "[a-z']$")) %>% 
+  filter(str_detect(word, regex("^[MDCLXVI]+$", ignore_case = TRUE), negate = TRUE)) %>% # Remove Roman numerals
   anti_join(stop_words)
 ```
 
@@ -194,11 +195,11 @@ mb.top.terms %>%
   scale_y_reordered()
 ```
 ```{r warning=FALSE}
-# Create wordcloud of Topic 4
-topic4 <- ac.topics %>% 
-  filter(topic == 4)
+# Create wordcloud of Topic 5
+topic5 <- mb.topics %>% 
+  filter(topic == 5)
 
-wordcloud(topic4$term, topic4$beta, max.words = 100, random.order = FALSE,
+wordcloud(topic5$term, topic5$beta, max.words = 100, random.order = FALSE,
     rot.per = 0.3, colors = brewer.pal(6, "Dark2"))
 ```
 ```{r}
@@ -210,14 +211,137 @@ mb.documents
 
 (@) What happens if you create a custom stopword list? How does this change the model?
 ```{r}
+# I'm going to use the custom stopword list that I created for the previous worksheet.
+stop_words_mb <- tibble(
+  word = c(
+    "vol",
+    "march",
+    "physical",
+    "left",
+    "digitized",
+    "dr",
+    "ooqle",
+    "google",
+    "st",
+    "ft",
+    "cjooqle",
+    "pa",
+    "wm",
+    "louis",
+    "wis",
+    "june",
+    "july",
+    "stecher",
+    "ave"
+  ),
+  lexicon = "Mind Body"
+)
 
+all_stop_words <- stop_words %>%
+  bind_rows(stop_words_mb)
+
+tidy_mb2 <- mb_whole %>%
+  unnest_tokens(word, text) %>% 
+  filter(str_detect(word, "[a-z']$")) %>% 
+  filter(str_detect(word, regex("^[MDCLXVI]+$", ignore_case = TRUE), negate = TRUE)) %>% # Remove Roman numerals
+  anti_join(all_stop_words)
 ```
 
-(@) Can you create a topic model for just the documents in the 1920s? How does that change the model? 
+> tidy_mb has 3,157,192 obs. of 8 variables. tidy_mb2 has 3,063,106 obs. of 8 variables. Using the custom stopwords list removed about 100k words.
+
+```{r}
+# Create document with the doc_id and the word and count number of times that word occurs
+tidy_mb_words2 <- tidy_mb2 %>% 
+  count(Filename, word)
+
+# Use cast_dtm() to turn document into DTM
+mb.dtm2 <- tidy_mb_words2 %>% 
+  count(Filename, word) %>% 
+  cast_dtm(Filename, word, n)
+```
+
+
+```{r}
+# Create Latent Dirichlet allocation (LDA) topic model with 25 topics
+mb.lda2 <- LDA(mb.dtm2, k = 25, control = list(seed = 12345))
+mb.lda2
+```
+
+```{r}
+# Create word-topic probability matrix
+mb.topics2 <- tidy(mb.lda2, matrix = "beta")
+mb.topics2
+```
+
+
+```{r}
+# Select top 5 terms in each topic
+mb.top.terms2 <- mb.topics2 %>%
+  group_by(topic) %>%
+  top_n(5, beta)
+
+# Display top 5 terms in each topic in a bar chart
+mb.top.terms2 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+```
+
+```{r warning=FALSE}
+# Create wordcloud of Topic 25
+topic25 <- mb.topics2 %>% 
+  filter(topic == 25)
+
+wordcloud(topic25$term, topic25$beta, max.words = 100, random.order = FALSE,
+    rot.per = 0.3, colors = brewer.pal(6, "Dark2"))
+```
+> As noted above, using the custom stopwords list removed about 100K words from the corpus. Comparing the faceted bar graphs of the two versions, I think that the second version offers more meaningful data because the stopwords list eliminated a lot of partial words created by OCR.
+
+(@) Can you create a topic model for just the documents in the 1920s? How does that change the model?
+
+> Since filtering the the documents for the 1920s reduces the corpus to ~330,000 words, I'm going to create a model of just 5 topics.
+
 ```{r}
 
+tidy_mb_1920s <- tidy_mb_words2 %>%
+  filter(str_detect(Filename, "^MB_192"))
 
+# Use cast_dtm() to turn document into DTM
+mb.dtm.1920s <- tidy_mb_1920s %>% 
+  count(Filename, word) %>% 
+  cast_dtm(Filename, word, n)
+
+# Create Latent Dirichlet allocation (LDA) topic model with 5 topics
+mb.lda.1920s <- LDA(mb.dtm.1920s, k = 5, control = list(seed = 12345))
+mb.lda.1920s
 ```
 
+```{r}
+# Create word-topic probability matrix
+mb.topics.1920s <- tidy(mb.lda.1920s, matrix = "beta")
+mb.topics.1920s
+```
+
+```{r}
+# Select top 5 terms in each topic
+mb.top.terms.1920s <- mb.topics.1920s %>%
+  group_by(topic) %>%
+  top_n(5, beta)
+
+# Display top 5 terms in each topic in a bar chart
+mb.top.terms.1920s %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+```
+```{r}
+# Create document-topic probability matrix
+mb.documents.1920s <- tidy(mb.lda.1920s, matrix = "gamma")
+mb.documents.1920s
+```
 
 This was the final worksheet for this class. You did it - you learned to code in R! Congrats!
