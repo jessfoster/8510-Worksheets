@@ -1,7 +1,7 @@
 ---
 title: 'Worksheet 7: Topic Modeling'
 author: 'Jessica Foster'
-date: '2023-04-04'
+date: '2023-04-10'
 ---
 
 _This is the seventh in a series of worksheets for History 8510 at Clemson University. The goal of these worksheets is simple: practice, practice, practice. The worksheet introduces concepts and techniques and includes prompts for you to practice in this interactive document. When you are finished, you should change the author name (above), knit your document, and upload it to canvas. Don't forget to commit your changes as you go and push to github when you finish the worksheet._
@@ -43,7 +43,7 @@ tidy_ac <- ac_whole %>%
   filter(str_detect(word, "[a-z']$")) %>% 
   anti_join(stop_words)
 ```
-The above code borrows from what we did last week. It pulls in the texts from the _The American City_ corpus, joins them together into a single data frame, and then turns then uses `unnest_tokens()` to tokenize the text and, finally, removes stop words. 
+The above code borrows from what we did last week. It pulls in the texts from the _The American City_ corpus, joins them together into a single data frame, and then uses `unnest_tokens()` to tokenize the text and, finally, removes stop words. 
 
 For topic modeling, we need a Document Term Matrix, or a DTM. Topic Modeling has the documents running down one side and the terms across the top. `Tidytext` provides a function for converting to and from DTMs. First, we need to create a document that has the doc_id, the word and the count of the number of times that word occurs. We can do that using `count()`.
 
@@ -51,7 +51,7 @@ For topic modeling, we need a Document Term Matrix, or a DTM. Topic Modeling has
 tidy_ac_words <- tidy_ac %>% count(filename, word)
 ```
 
-Now we can use `cast_dtm()` to turn `tidy_mb_words` into a dtm. 
+Now we can use `cast_dtm()` to turn `tidy_ac_words` into a dtm. 
 
 ```{r}
 ac.dtm <- tidy_ac_words %>% 
@@ -59,11 +59,11 @@ ac.dtm <- tidy_ac_words %>%
   cast_dtm(filename, word, n)
 ```
 
-If you run `class(mb.dtm)` in your console you will notice that it now has a class of "DocumentTermMatrix". 
+If you run `class(ac.dtm)` in your console you will notice that it now has a class of "DocumentTermMatrix". 
 
 Now that we have a dtm, we can create a topic model. For this, we'll use the topic models package and the `LDA()` function. Take a minute and read the documentation for `LDA()`.
 
-There are two important options when running `LDA()`. The first is k which is the number of topics you want the model to generate. What number topics you generate is a decision that often takes some experimentation and depends on the size of your corpus. The American City corpus isn't that bigbut still has over 209k words. In this instance, because the corpus is so small we're going to start with a small number of topics. Going above 5 causes errors with this particular corpus. Later, when you work with a different corpus you should experiment with changing the number of topics from 10 to 20 to 30 to 50 to see how it changes your model. 
+There are two important options when running `LDA()`. The first is k which is the number of topics you want the model to generate. What number topics you generate is a decision that often takes some experimentation and depends on the size of your corpus. The American City corpus isn't that big but still has over 209k words. In this instance, because the corpus is so small we're going to start with a small number of topics. Going above 5 causes errors with this particular corpus. Later, when you work with a different corpus you should experiment with changing the number of topics from 10 to 20 to 30 to 50 to see how it changes your model. 
 
 The second important option when running `LDA()` is the seed option. You don't worry too much about what setting the seed does, but put simply - it ensures the output of the model is predictable and reproducible. Using the seed ensures that if you come back to your code later or someone else tries to run it, the model will return exactly the same results. 
 
@@ -83,7 +83,7 @@ Every topic is made up of words that are most associated with that topic. Togeth
 ac.topics <- tidy(ac.lda, matrix = "beta")
 ac.topics
 ```
-What we have here is a list of topics and the weight of each term in that topic. Essential we have turned this into a one-topic-per-term-per-row format. So, for example, the term 10th has a weight of 5.135047e-05 in topic 1 but 7.269700e-05 in topic 2. Now that doesn't mean a lot to us at this moment and this format is impossible to grasp in its current size and iteration, but we can use tidyverse functions to pair this down and determine the 10 terms that are most common within each topic. 
+What we have here is a list of topics and the weight of each term in that topic. Essentially we have turned this into a one-topic-per-term-per-row format. So, for example, the term 10th has a weight of 5.135047e-05 in topic 1 but 7.269700e-05 in topic 2. Now that doesn't mean a lot to us at this moment and this format is impossible to grasp in its current size and iteration, but we can use tidyverse functions to pare this down and determine the 10 terms that are most common within each topic. 
 ```{r}
 ac.top.terms <- ac.topics %>%
   group_by(topic) %>%
@@ -98,19 +98,30 @@ ac.top.terms %>%
 ```
 (@) Can you adjust the code above to show the top 10 words from just one topic?
 ```{r}
+ac.top.terms <- ac.topics %>%
+  filter(topic == 1) %>% # Filter for topic 1
+  group_by(topic) %>%
+  top_n(10, beta) # Show top 10 words for topic
 
+ac.top.terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE)
 ```
 
 Another useful way to look at the words in each topic is by visualizing them as a wordcloud.
 ```{r warning=FALSE}
 library(wordcloud)
-topic1 <- ac.topics %>% filter(topic == 2)
+
+topic1 <- ac.topics %>% 
+  filter(topic == 2)
+
 wordcloud(topic1$term, topic1$beta, max.words = 100, random.order = FALSE,
     rot.per = 0.3, colors = brewer.pal(6, "Dark2"))
 ```
 
 
-Now we can see what words are most common in each topic. But the document-topic probabilities are also useful for understanding what topics are prevalent in what documents. Just as each topic is made up of a mixture of words, the LDA algorithm also assumes that each topic is made up of a mixture of topics. 
+Now we can see what words are most common in each topic. But the document-topic probabilities are also useful for understanding what topics are prevalent in what documents. Just as each topic is made up of a mixture of words, the LDA algorithm also assumes that each document is made up of a mixture of topics. 
 
 ```{r}
 ac.documents <- tidy(ac.lda, matrix = "gamma")
@@ -120,7 +131,9 @@ For each document, the model gives us an estimated proportion of what words in t
 
 This is easier to see if we filter to see the breakdown for just one document. 
 ```{r}
-ac.documents %>%  filter(document == "1916_May.txt") %>% arrange(desc(gamma))
+ac.documents %>%
+  filter(document == "1916_May.txt") %>% 
+  arrange(desc(gamma))
 ```
 
 (@) Use the rest of this worksheet to experiment with topic modeling. I've added the code to download a much larger dataset - the issues of Mind and Body. This corpus has 413 documents ranging from the 1890s to 1936. You'll want to start with at least 25 topics. 
